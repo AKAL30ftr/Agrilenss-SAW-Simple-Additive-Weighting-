@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --color-emerald-300: #86efac;
+  --color-emerald-400: #4ADE80;
+  --color-emerald-500: #22c55e;
+  --color-surface: #101415;
+  --color-background: #0b0f10;
+  --font-body: var(--font-inter), sans-serif;
+  --font-heading: var(--font-manrope), sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-[#0b0f10] text-[#e0e3e5] antialiased min-h-screen flex flex-col font-body;
+    background-image: radial-gradient(circle at top left, #101415, #0b0f10);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading text-white;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-black/20 backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)];
+  }
+  .glass-card-bright {
+    @apply bg-emerald-400/5 backdrop-blur-xl border border-emerald-400/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)];
+  }
+  .glass-plate {
+    @apply bg-black/40 backdrop-blur-[40px] border border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.5)];
+  }
+}
