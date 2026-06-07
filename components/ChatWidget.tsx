@@ -106,13 +106,13 @@ const TOOLTIPS: Record<string, string> = {
 };
 
 const PARAM_LABELS: Record<string, { label: string; emoji: string; format: (v: unknown) => string }> = {
-  elevation:  { label: 'Ketinggian',        emoji: '📍', format: (v) => `${v} mdpl` },
-  rainfall:   { label: 'Curah hujan',       emoji: '🌧️', format: (v) => `${v} mm/tahun` },
-  pH:         { label: 'pH tanah',          emoji: '🔬', format: (v) => `pH ${v}` },
-  texture:    { label: 'Tekstur tanah',     emoji: '🤲', format: (v) => `${v}` },
-  light:      { label: 'Intensitas cahaya', emoji: '☀️', format: (v) => `${v} jam/hari` },
+  'ketinggian':        { label: 'Ketinggian',        emoji: '📍', format: (v) => `${v} mdpl` },
+  'curah hujan':       { label: 'Curah hujan',       emoji: '🌧️', format: (v) => `${v} mm/tahun` },
+  'pH tanah':          { label: 'pH tanah',          emoji: '🔬', format: (v) => `pH ${v}` },
+  'tekstur tanah':     { label: 'Tekstur tanah',     emoji: '🤲', format: (v) => `${v}` },
+  'intensitas cahaya': { label: 'Intensitas cahaya', emoji: '☀️', format: (v) => `${v} jam/hari` },
 };
-const PARAM_ORDER: string[] = ['elevation', 'rainfall', 'pH', 'texture', 'light'];
+const PARAM_ORDER: string[] = ['ketinggian', 'curah hujan', 'pH tanah', 'tekstur tanah', 'intensitas cahaya'];
 
 const PREFERENCE_OPTIONS: PreferenceOption[] = [
   { id: 'pref_biaya',         label: 'Biaya produksi rendah',   criterionId: 'biaya_produksi' },
