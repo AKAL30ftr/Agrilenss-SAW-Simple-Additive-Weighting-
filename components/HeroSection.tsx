@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 export default function HeroSection() {
   return (
-    <section className="relative w-full min-h-[600px] flex items-center justify-center overflow-hidden -mt-20 pt-28">
+    <section className="relative w-full min-h-[600px] flex items-center justify-center overflow-hidden">
       <Image 
         src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSC6SoldAHyq6IdlaeMv9ciDRdr6Pzwsa2Zk3guZEanBYeF2Oc1LvlEc3ZLU5Fa6OB1Ig54MAgIMrZ5KJ44lUqWj4WxVtzA5pZh93iMik49lFxWaaIgc3rTRXEKSRmmeTPpYfJEe1LUQDgBdU3Rb8gfgoApyg9lSEja-ZQY5AGao6ZGu-x-Z53AgwOP_av0tJ6O8tqY3hC-Ns3X_0x6nKeHzOrQg0BQ9Gn44XLD9ikBSQwxQ6McinKoUx41Y04D8fkK8uvJK3AhuK2"
         alt="Lahan Pertanian"
