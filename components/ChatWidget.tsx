@@ -1,7 +1,16 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Bot, X, Send, MoreVertical } from 'lucide-react';
+import { FAQ_CONTENT, type FaqSection, type FaqItem } from '@/lib/faq-content';
+
+// ─── localStorage keys ───────────────────────────────────────────────
+const STORAGE_KEY = 'agri-saw-user';
+
+interface StoredUserData {
+  name: string;
+  gender: 'laki' | 'perempuan';
+}
 
 interface Message {
   id: string;
@@ -21,6 +30,33 @@ interface PreferenceOption {
 }
 
 type FlowPhase = 'welcome' | 'collecting' | 'confirming' | 'preference' | 'done';
+type FaqView = 'none' | 'categories' | 'items' | 'answer';
+
+// ─── Parameter → FAQ mapping for all-crops-eliminated flow ───────────
+const PARAM_TO_FAQ: Record<string, { sectionId: string; itemId: string; label: string }> = {
+  'pH tanah':    { sectionId: 'faq-params', itemId: 'param-ph',              label: 'Pelajari cara memperbaiki pH tanah' },
+  'ketinggian':  { sectionId: 'faq-params', itemId: 'param-ketinggian',    label: 'Pelajari soal ketinggian tempat' },
+  'curah hujan': { sectionId: 'faq-params', itemId: 'param-curah-hujan',   label: 'Pelajari soal curah hujan' },
+  'tekstur tanah': { sectionId: 'faq-params', itemId: 'param-tekstur-tanah', label: 'Pelajari soal tekstur tanah' },
+  'intensitas cahaya': { sectionId: 'faq-params', itemId: 'param-cahaya',  label: 'Pelajari soal intensitas cahaya' },
+};
+
+// Extract which parameters are out of range from elimination reasons
+function extractOutOfRangeParams(eliminated: Array<{ name: string; reasons: string[] }>): string[] {
+  const params = new Set<string>();
+  const reasonToLower = (r: string) => r.toLowerCase();
+  for (const crop of eliminated) {
+    for (const reason of crop.reasons) {
+      const lower = reasonToLower(reason);
+      if (lower.includes('ph')) params.add('pH tanah');
+      if (lower.includes('ketinggian') || lower.includes('mdpl')) params.add('ketinggian');
+      if (lower.includes('curah hujan') || lower.includes('hujan') || lower.includes('mm/tahun')) params.add('curah hujan');
+      if (lower.includes('tekstur') || lower.includes('tanah') && (lower.includes('liat') || lower.includes('pasir') || lower.includes('lempung'))) params.add('tekstur tanah');
+      if (lower.includes('cahaya') || lower.includes('jam/hari')) params.add('intensitas cahaya');
+    }
+  }
+  return Array.from(params);
+}
 
 const QUICK_REPLIES: Record<string, QuickReply[]> = {
   'ketinggian': [
@@ -91,6 +127,18 @@ function getQuickReplies(missingParams: string[]): QuickReply[] {
   return QUICK_REPLIES[missingParams[0]] || [];
 }
 
+// ─── Animated dots component ─────────────────────────────────────────
+function AnimatedDots() {
+  const [dots, setDots] = useState('');
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+  return <span>{dots}</span>;
+}
+
 export default function ChatWidget({ fullPage = false }: { fullPage?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -107,11 +155,47 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [showPreferences, setShowPreferences] = useState(false);
   const [uncertainParams, setUncertainParams] = useState<Set<string>>(new Set());
+  const [eliminatedCrops, setEliminatedCrops] = useState<Array<{ name: string; reasons: string[] }>>([]);
+  const [outOfRangeParams, setOutOfRangeParams] = useState<string[]>([]);
+
+  // FAQ state
+  const [faqView, setFaqView] = useState<FaqView>('none');
+  const [faqSelectedSection, setFaqSelectedSection] = useState<FaqSection | null>(null);
+  const [faqSelectedItem, setFaqSelectedItem] = useState<FaqItem | null>(null);
+
+  // Loading screen state
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const msgIdCounter = useRef(0);
   const nextMsgId = () => { msgIdCounter.current += 1; return `msg-${msgIdCounter.current}`; };
 
   const isInputDisabled = phase === 'welcome' || phase === 'collecting' || phase === 'confirming' || phase === 'preference';
+
+  // ─── localStorage: load on mount ──────────────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const data: StoredUserData = JSON.parse(stored);
+        if (data.name) setFormName(data.name);
+        if (data.gender) setFormGender(data.gender);
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
+  // ─── localStorage: save on form submit ───────────────────────────
+  const saveToStorage = useCallback((name: string, gender: 'laki' | 'perempuan') => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, gender }));
+    } catch {
+      // ignore quota errors
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -123,7 +207,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     }
   }, [isOpen, messages.length]);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, showLoadingScreen]);
 
   useEffect(() => {
     if (!isOpen || fullPage) return;
@@ -134,11 +218,13 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
 
   const handleFormSubmit = () => {
     const name = formName.trim() || 'Petani';
+    const gender = formGender || 'laki';
     setUserName(name);
+    saveToStorage(name, gender as 'laki' | 'perempuan');
     const details: string[] = [`Nama: ${name}`];
-    if (formGender === 'laki') details.push('Sapaan: Bapak');
-    else if (formGender === 'perempuan') details.push('Sapaan: Ibu');
-    const greeting = formGender === 'perempuan' ? `Terima kasih, Ibu ${name}!` : `Terima kasih, Bapak ${name}!`;
+    if (gender === 'laki') details.push('Sapaan: Bapak');
+    else if (gender === 'perempuan') details.push('Sapaan: Ibu');
+    const greeting = gender === 'perempuan' ? `Terima kasih, Ibu ${name}!` : `Terima kasih, Bapak ${name}!`;
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: details.join('\n') },
@@ -149,6 +235,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   };
 
   const proceedWithCalculation = async (params: Record<string, unknown>, preferences?: string[]) => {
+    setShowLoadingScreen(true);
     setIsLoading(true);
     setShowPreferences(false);
     try {
@@ -159,6 +246,28 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       if (!response.ok) throw new Error(data.error || 'Gagal memproses rekomendasi');
       if (data.userValues) setPreviousParams(data.userValues);
       if (data.missingParams) setCurrentMissingParams(data.missingParams);
+
+      // Handle all-crops-eliminated
+      if (data.mode === 'all-eliminated' || (data.eliminated && data.eliminated.length > 0 && (!data.surviving || data.surviving.length === 0))) {
+        const eliminated = data.eliminated || [];
+        setEliminatedCrops(eliminated);
+        const oorParams = extractOutOfRangeParams(eliminated);
+        setOutOfRangeParams(oorParams);
+        const sapaan = formGender === 'perempuan' ? 'Ibu' : 'Bapak';
+        const eliminationList = eliminated
+          .map((e: { name: string; reasons: string[] }) => `• **${e.name}**: ${e.reasons.join('; ')}`)
+          .join('\n');
+        const message = [
+          `Maaf, ${sapaan} ${userName}, semua komoditas tidak cocok dengan kondisi lahan Anda.`,
+          '',
+          '**Detail eliminasi:**',
+          eliminationList,
+        ].join('\n');
+        setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: message }]);
+        setPhase('done');
+        return;
+      }
+
       if (!preferences && data.surviving && data.surviving.length > 0) {
         setCollectedParams(params);
         setShowPreferences(true);
@@ -173,6 +282,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: `Maaf, terjadi kesalahan: ${error instanceof Error ? error.message : 'Unknown error'}` }]);
     } finally {
       setIsLoading(false);
+      setShowLoadingScreen(false);
       setCollectedParams(null);
     }
   };
@@ -240,14 +350,176 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   };
 
   const handleHitung = () => { if (collectedParams) { setPhase('collecting'); proceedWithCalculation(collectedParams); } };
-  const handleUlangi = () => { setCollectedParams(null); setPreviousParams(undefined); setCurrentMissingParams([...PARAM_ORDER]); setPhase('collecting'); setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: 'Baik, mari kita ulangi. Silakan jawab pertanyaan berikut.' }]); };
+
+  // ─── Ulangi: go to Phase 3 with previous params pre-filled ────────
+  const handleUlangi = () => {
+    setCollectedParams(null);
+    setEliminatedCrops([]);
+    setOutOfRangeParams([]);
+    setFaqView('none');
+    setFaqSelectedSection(null);
+    setFaqSelectedItem(null);
+    // Keep previousParams so the API can use them as defaults
+    setCurrentMissingParams([...PARAM_ORDER]);
+    setPhase('collecting');
+    setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: 'Baik, mari kita ulangi konsultasi. Silakan jawab pertanyaan berikut dengan kondisi lahan Anda yang baru.' }]);
+  };
+
   const handlePreferenceSubmit = () => { if (collectedParams) proceedWithCalculation(collectedParams, selectedPreferences); };
   const handleTogglePreference = (criterionId: string) => { setSelectedPreferences((prev) => prev.includes(criterionId) ? prev.filter((id) => id !== criterionId) : [...prev, criterionId]); };
   const handleQuickReplyKeyDown = (e: React.KeyboardEvent, value: string) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleQuickReply(value); } };
 
+  // ─── FAQ handlers ─────────────────────────────────────────────────
+  const handleShowFaqCategories = () => {
+    setFaqView('categories');
+    setFaqSelectedSection(null);
+    setFaqSelectedItem(null);
+  };
+
+  const handleFaqCategorySelect = (section: FaqSection) => {
+    setFaqSelectedSection(section);
+    setFaqView('items');
+  };
+
+  const handleFaqItemSelect = (item: FaqItem) => {
+    setFaqSelectedItem(item);
+    setFaqView('answer');
+  };
+
+  const handleFaqBack = () => {
+    if (faqView === 'answer') {
+      setFaqView('items');
+      setFaqSelectedItem(null);
+    } else if (faqView === 'items') {
+      setFaqView('categories');
+      setFaqSelectedSection(null);
+    } else {
+      setFaqView('none');
+    }
+  };
+
+  // ─── All-crops-eliminated: FAQ hyperlink handler ──────────────────
+  const handleOutOfRangeFaqClick = (param: string) => {
+    const mapping = PARAM_TO_FAQ[param];
+    if (!mapping) return;
+    const section = FAQ_CONTENT.find((s) => s.id === mapping.sectionId);
+    if (!section) return;
+    const item = section.items.find((i) => i.id === mapping.itemId);
+    if (!item) return;
+    setFaqSelectedSection(section);
+    setFaqSelectedItem(item);
+    setFaqView('answer');
+  };
+
   const quickReplies = getQuickReplies(currentMissingParams);
   const currentParam = currentMissingParams[0] || '';
   const currentTooltip = currentParam ? TOOLTIPS[currentParam] : undefined;
+
+  // ─── Render FAQ quick replies ─────────────────────────────────────
+  const renderFaqQuickReplies = () => {
+    if (faqView === 'none') return null;
+
+    if (faqView === 'categories') {
+      return (
+        <div className="pl-8 space-y-2" role="group" aria-label="Kategori FAQ">
+          <p className="text-xs text-white/50 font-medium mb-2">Pilih topik yang ingin Anda pelajari:</p>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+            {FAQ_CONTENT.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => handleFaqCategorySelect(section)}
+                className="text-xs px-3 py-2.5 rounded-full border border-blue-400/30 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20 transition-all cursor-pointer min-h-[44px]"
+              >
+                {section.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (faqView === 'items' && faqSelectedSection) {
+      return (
+        <div className="pl-8 space-y-2" role="group" aria-label="Item FAQ">
+          <p className="text-xs text-white/50 font-medium mb-2">{faqSelectedSection.title}:</p>
+          <div className="flex flex-col gap-2">
+            {faqSelectedSection.items.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleFaqItemSelect(item)}
+                className="text-left text-xs px-3 py-2.5 rounded-lg border border-blue-400/30 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20 transition-all cursor-pointer"
+              >
+                {item.question}
+              </button>
+            ))}
+            <button
+              onClick={handleFaqBack}
+              className="text-xs px-3 py-2 rounded-lg border border-white/20 bg-white/5 text-white/60 hover:bg-white/10 transition-all cursor-pointer self-start"
+            >
+              ← Kembali
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (faqView === 'answer' && faqSelectedItem) {
+      return (
+        <div className="pl-8 space-y-2" role="group" aria-label="Jawaban FAQ">
+          <div className="bg-blue-400/10 border border-blue-400/20 rounded-lg p-3">
+            <p className="text-xs text-blue-300 font-semibold mb-1">{faqSelectedItem.question}</p>
+            <p className="text-xs text-white/70 whitespace-pre-line leading-relaxed">{faqSelectedItem.answer}</p>
+            {faqSelectedItem.fixSuggestion && (
+              <div className="mt-2 pt-2 border-t border-blue-400/20">
+                <p className="text-xs text-emerald-300 font-medium">💡 Cara mengatasi:</p>
+                <p className="text-xs text-white/60 whitespace-pre-line">{faqSelectedItem.fixSuggestion}</p>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleFaqBack}
+            className="text-xs px-3 py-2 rounded-lg border border-white/20 bg-white/5 text-white/60 hover:bg-white/10 transition-all cursor-pointer"
+          >
+            ← Kembali
+          </button>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  // ─── Render all-crops-eliminated FAQ hyperlinks ───────────────────
+  const renderEliminatedFaqLinks = () => {
+    if (phase !== 'done' || eliminatedCrops.length === 0 || outOfRangeParams.length === 0) return null;
+
+    return (
+      <div className="pl-8 space-y-2" role="group" aria-label="FAQ untuk parameter bermasalah">
+        <p className="text-xs text-white/50 font-medium mb-2">Pelajari cara memperbaiki kondisi lahan Anda:</p>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+          {outOfRangeParams.map((param) => {
+            const mapping = PARAM_TO_FAQ[param];
+            if (!mapping) return null;
+            return (
+              <button
+                key={param}
+                onClick={() => handleOutOfRangeFaqClick(param)}
+                className="text-xs px-3 py-2.5 rounded-full border border-amber-400/30 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20 transition-all cursor-pointer min-h-[44px]"
+              >
+                {mapping.label}
+              </button>
+            );
+          })}
+          <button
+            onClick={handleUlangi}
+            className="text-xs px-3 py-2.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-all cursor-pointer min-h-[44px]"
+          >
+            Ulangi konsultasi
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   const chatContent = (
     <>
@@ -273,7 +545,26 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
             <div className={`rounded-2xl rounded-tl-sm p-2.5 border shadow-lg ${msg.role === 'assistant' ? 'bg-white/10 backdrop-blur-md border-white/10' : 'bg-emerald-400/10 backdrop-blur-md border-emerald-400/30'}`}><p className={`whitespace-pre-line text-sm leading-relaxed ${msg.role === 'assistant' ? 'text-slate-200' : 'text-emerald-50'}`}>{msg.content}</p></div>
           </div>
         ))}
-        {isLoading && (<div className="flex gap-2 max-w-[90%]" role="status"><div className="w-6 h-6 rounded-full bg-emerald-400/20 flex-shrink-0 flex items-center justify-center border border-emerald-400/30 mt-1"><Bot className="w-3 h-3 text-emerald-400" /></div><div className="bg-white/10 backdrop-blur-md rounded-2xl rounded-tl-sm p-2.5 border border-white/10"><p className="text-slate-200 text-sm">Sedang menganalisis...</p></div></div>)}
+
+        {/* ─── Loading screen ──────────────────────────────────────── */}
+        {showLoadingScreen && (
+          <div className="flex gap-2 max-w-[90%]" role="status">
+            <div className="w-6 h-6 rounded-full bg-emerald-400/20 flex-shrink-0 flex items-center justify-center border border-emerald-400/30 mt-1"><Bot className="w-3 h-3 text-emerald-400" /></div>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl rounded-tl-sm p-2.5 border border-white/10">
+              <p className="text-slate-200 text-sm">
+                Terima kasih atas kesabarannya, Bapak/Ibu. Hasil perhitungan sedang disusun<AnimatedDots />
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Standard loading indicator (non-calculation) ─────────── */}
+        {isLoading && !showLoadingScreen && (
+          <div className="flex gap-2 max-w-[90%]" role="status">
+            <div className="w-6 h-6 rounded-full bg-emerald-400/20 flex-shrink-0 flex items-center justify-center border border-emerald-400/30 mt-1"><Bot className="w-3 h-3 text-emerald-400" /></div>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl rounded-tl-sm p-2.5 border border-white/10"><p className="text-slate-200 text-sm">Sedang menganalisis...</p></div>
+          </div>
+        )}
 
         {phase === 'welcome' && !isLoading && (
           <div className="flex gap-2 max-w-[92%]">
@@ -315,6 +606,25 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2" role="group" aria-label="Pilihan jawaban">{quickReplies.map((qr) => (<button key={qr.value} onClick={() => handleQuickReply(qr.value)} onKeyDown={(e) => handleQuickReplyKeyDown(e, qr.value)} tabIndex={0} role="button" aria-label={qr.label} disabled={isLoading} className={`text-xs px-3 py-2.5 rounded-full border transition-all cursor-pointer disabled:opacity-50 min-h-[44px] ${qr.value.startsWith('__ESCAPE') ? 'border-amber-400/30 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20' : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20'}`}>{qr.label}</button>))}</div>
           </div>
         )}
+
+        {/* ─── FAQ quick replies (Phase 2: ringkasan / done) ──────── */}
+        {(phase === 'done' || phase === 'confirming') && !isLoading && faqView === 'none' && eliminatedCrops.length === 0 && (
+          <div className="pl-8 space-y-2">
+            <button
+              onClick={handleShowFaqCategories}
+              className="text-xs px-3 py-2.5 rounded-full border border-blue-400/30 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20 transition-all cursor-pointer min-h-[44px]"
+            >
+              Ada pertanyaan?
+            </button>
+          </div>
+        )}
+
+        {/* ─── FAQ navigation ──────────────────────────────────────── */}
+        {renderFaqQuickReplies()}
+
+        {/* ─── All-crops-eliminated FAQ hyperlinks ─────────────────── */}
+        {renderEliminatedFaqLinks()}
+
         <div ref={messagesEndRef} aria-hidden="true" />
       </div>
 
