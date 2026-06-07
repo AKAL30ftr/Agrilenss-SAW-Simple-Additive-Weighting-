@@ -530,54 +530,35 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setShowLoadingScreen(true);
     setIsLoading(true);
     setShowPreferences(false);
-
     // Minimum 3 second delay for loading screen
-    const { promise: minDelay, resolve: resolveDelay } = Promise.withResolvers<void>();
-    setTimeout(resolveDelay, 3000);
-
+    let resolveDelay: () => void;
+    const minDelay = new Promise<void>((resolve) => { resolveDelay = resolve; });
+    setTimeout(() => resolveDelay!(), 3000);
     try {
       const body: Record<string, unknown> = { message: 'Hitung rekomendasi', previousParams: params };
       if (preferences && preferences.length > 0) body.preferences = preferences;
-
-      const { promise: apiCall, resolve: resolveApi, reject: rejectApi } = Promise.withResolvers<{
-        message: string;
-        userValues?: Record<string, unknown>;
-        missingParams?: string[];
-        surviving?: Array<{ name: string; score: string; normalizedValues?: Record<string, number>; explanation?: string }>;
-        eliminated?: Array<{ name: string; reasons: string[] }>;
-        mode?: string;
-      }>();
-
-      fetch('/api/recommend', {
+      const apiData = await fetch('/api/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-      })
-        .then((res) => res.json())
-        .then(resolveApi)
-        .catch(rejectApi);
-
-      // Wait for both API and minimum delay
-      const data = await apiCall;
+      }).then((res) => res.json());
+      // Wait for minimum delay after API responds
       await minDelay;
-
-      if (data.userValues) {
-        setPreviousParams(data.userValues);
-        saveToStorage(userName, userGender, data.userValues);
+      if (apiData.userValues) {
+        setPreviousParams(apiData.userValues);
+        saveToStorage(userName, userGender, apiData.userValues);
       }
-      if (data.missingParams) setCurrentMissingParams(data.missingParams);
-
+      if (apiData.missingParams) setCurrentMissingParams(apiData.missingParams);
       // Handle all-crops-eliminated
-      // Handle all-crops-eliminated
-      if (data.mode === 'all-eliminated' || (data.eliminated && data.eliminated.length > 0 && (!data.surviving || data.surviving.length === 0))) {
-        const eliminated = data.eliminated || [];
+      if (apiData.mode === 'all-eliminated' || (apiData.eliminated && apiData.eliminated.length > 0 && (!apiData.surviving || apiData.surviving.length === 0))) {
+        const eliminated = apiData.eliminated || [];
         setEliminatedCrops(eliminated);
         const oorParams = extractOutOfRangeParams(eliminated);
         setOutOfRangeParams(oorParams);
         const sal = sapaan(userGender);
         // Build conversational summary per parameter
         const paramIssues: string[] = [];
-        if (oorParams.includes('ketinggian')) paramIssues.push('ketinggian lahan Bapak di 900 mdpl terlalu tinggi untuk semua komoditas');
+        if (oorParams.includes('ketinggian')) paramIssues.push('ketinggian lahan Bapak terlalu tinggi untuk semua komoditas');
         if (oorParams.includes('curah hujan')) paramIssues.push('curah hujan terlalu rendah untuk semua komoditas');
         if (oorParams.includes('pH tanah')) paramIssues.push('kondisi tanah kurang sesuai');
         if (oorParams.includes('tekstur tanah')) paramIssues.push('tekstur tanah kurang sesuai');
@@ -595,11 +576,11 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         return;
       }
       // Filter 1 done, show preference selection
-      if (!preferences && data.surviving && data.surviving.length > 0) {
-        const surviving = data.surviving;
+      if (!preferences && apiData.surviving && apiData.surviving.length > 0) {
+        const surviving = apiData.surviving;
         setCollectedParams(params);
         setSurvivingCrops(surviving);
-        setEliminatedCrops(data.eliminated || []);
+        setEliminatedCrops(apiData.eliminated || []);
         setShowPreferences(true);
         setPhase('preference');
         const sal2 = sapaan(userGender);
@@ -612,12 +593,12 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         return;
       }
       // Final result (after preference submit)
-      if (data.surviving && data.surviving.length > 0) {
-        const surviving = data.surviving;
+      if (apiData.surviving && apiData.surviving.length > 0) {
+        const surviving = apiData.surviving;
         setSurvivingCrops(surviving);
-        setEliminatedCrops(data.eliminated || []);
+        setEliminatedCrops(apiData.eliminated || []);
       }
-      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: data.message }]);
+      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: apiData.message }]);
       setPhase('done');
     } catch (error) {
       const sal = sapaan(userGender);
