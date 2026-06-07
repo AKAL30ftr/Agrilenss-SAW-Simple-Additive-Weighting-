@@ -107,8 +107,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
 
   // Form state
   const [formName, setFormName] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formLocation, setFormLocation] = useState('');
+  const [formGender, setFormGender] = useState<'laki' | 'perempuan' | ''>('');
   const [userName, setUserName] = useState('');
 
   const [previousParams, setPreviousParams] = useState<Record<string, unknown> | undefined>(undefined);
@@ -151,26 +150,23 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ─── Form submit → start collecting ───
   const handleFormSubmit = () => {
     const name = formName.trim() || 'Petani';
-    const email = formEmail.trim();
-    const location = formLocation.trim();
     setUserName(name);
-
     const details: string[] = [`Nama: ${name}`];
-    if (email) details.push(`Email: ${email}`);
-    if (location) details.push(`Lokasi: ${location}`);
-
+    if (formGender === 'laki') details.push('Sapaan: Bapak');
+    else if (formGender === 'perempuan') details.push('Sapaan: Ibu');
+    const greeting = formGender === 'perempuan' ? `Terima kasih, Ibu ${name}! 👋` : `Terima kasih, Bapak ${name}! 👋`;
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: details.join('\n') },
       {
         id: nextMsgId(),
         role: 'assistant',
-        content: `Terima kasih, ${name}! 👋\n\nSekarang saya akan menanyakan kondisi lahan Anda. Silakan pilih jawaban di bawah ini.\n\nParameter yang akan ditanyakan:\n📍 Ketinggian\n🌧️ Curah hujan\n🔬 pH tanah\n🤲 Tekstur tanah\n☀️ Intensitas cahaya`,
+        content: `${greeting}\n\nSekarang saya akan menanyakan kondisi lahan Anda. Silakan pilih jawaban di bawah ini.\n\nParameter yang akan ditanyakan:\n📍 Ketinggian\n🌧️ Curah hujan\n🔬 pH tanah\n🤲 Tekstur tanah\n☀️ Intensitas cahaya`,
       },
     ]);
-
     setPhase('collecting');
     setCurrentMissingParams([...PARAM_ORDER]);
+  };
   };
 
   // ─── API call to get recommendations ───
@@ -465,18 +461,17 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
                   />
                 </div>
                 <div>
-                  <label htmlFor="form-email" className="block text-xs text-white/60 mb-1 font-medium">Email <span className="text-white/30">(opsional)</span></label>
-                  <input id="form-email" type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)}
-                    placeholder="contoh@email.com"
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-400/50 focus:ring-1 focus:ring-emerald-400/50 transition-all"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="form-lokasi" className="block text-xs text-white/60 mb-1 font-medium">Lokasi <span className="text-white/30">(opsional)</span></label>
-                  <input id="form-lokasi" type="text" value={formLocation} onChange={(e) => setFormLocation(e.target.value)}
-                    placeholder="Kota/Kabupaten"
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-400/50 focus:ring-1 focus:ring-emerald-400/50 transition-all"
-                  />
+                  <label className="block text-xs text-white/60 mb-2 font-medium">Jenis Kelamin</label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setFormGender('laki')}
+                      className={`flex-1 text-sm px-3 py-2.5 rounded-lg border transition-all cursor-pointer ${formGender === 'laki' ? 'bg-emerald-400/20 border-emerald-400/50 text-emerald-200' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}>
+                      👨 Laki-laki
+                    </button>
+                    <button type="button" onClick={() => setFormGender('perempuan')}
+                      className={`flex-1 text-sm px-3 py-2.5 rounded-lg border transition-all cursor-pointer ${formGender === 'perempuan' ? 'bg-emerald-400/20 border-emerald-400/50 text-emerald-200' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}>
+                      👩 Perempuan
+                    </button>
+                  </div>
                 </div>
                 <button onClick={handleFormSubmit}
                   disabled={!formName.trim()}
@@ -632,23 +627,28 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     );
   }
 
-  // ─── Floating widget: mobile = full screen, desktop = popup ───
+  // ─── Floating widget ───
   return (
-    <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[9999] flex flex-col items-end" role="region" aria-label="Widget percakapan Agri-SAW">
-      {!isOpen && (
-        <button onClick={() => setIsOpen(true)}
-          className="w-14 h-14 rounded-full bg-emerald-400 flex items-center justify-center text-black hover:bg-emerald-300 transition-colors shadow-[0_0_20px_rgba(74,222,128,0.5)] border-2 border-[#0b0f10] hover:scale-105 active:scale-95"
-          aria-label="Buka percakapan rekomendasi tanaman" aria-expanded={isOpen}>
-          <Bot className="w-7 h-7" />
-          <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-[#0b0f10]"></span>
-        </button>
+    <>
+      {/* Tombol trigger floating */}
+      {!isOpen && !fullPage && (
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[9998] flex flex-col items-end" role="region" aria-label="Widget percakapan Agri-SAW">
+          <button onClick={() => setIsOpen(true)}
+            className="w-14 h-14 rounded-full bg-emerald-400 flex items-center justify-center text-black hover:bg-emerald-300 transition-colors shadow-[0_0_20px_rgba(74,222,128,0.5)] border-2 border-[#0b0f10] hover:scale-105 active:scale-95"
+            aria-label="Buka percakapan rekomendasi tanaman" aria-expanded={isOpen}>
+            <Bot className="w-7 h-7" />
+            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-[#0b0f10]"></span>
+          </button>
+        </div>
       )}
-      {isOpen && (
-        <div className="fixed inset-0 md:static md:w-[380px] md:max-w-[calc(100vw-2rem)] md:h-[550px] md:max-h-[calc(100vh-6rem)] glass-plate rounded-none md:rounded-2xl flex flex-col shadow-[0_15px_40px_rgba(0,0,0,0.6)] border-emerald-400/30 overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300"
+
+      {/* Area Chat saat terbuka (full screen dibawah navbar) */}
+      {isOpen && !fullPage && (
+        <div className="fixed top-20 left-0 right-0 bottom-0 z-[9999] flex flex-col bg-[#0b0f10] animate-in slide-in-from-bottom-4 fade-in duration-300"
           role="region" aria-label="Percakapan Agri-SAW">
           {chatContent}
         </div>
       )}
-    </div>
+    </>
   );
 }
