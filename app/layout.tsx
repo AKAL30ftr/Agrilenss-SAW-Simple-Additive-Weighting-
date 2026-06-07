@@ -16,7 +16,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
 <html lang="id" className={`${inter.variable} ${manrope.variable}`}>
       <body suppressHydrationWarning className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-1 w-full pb-12">
+        <main className="flex-1 w-full pt-20 pb-12">
           {children}
         </main>
       </body>
