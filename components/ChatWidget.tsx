@@ -553,7 +553,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ─── Full page mode: mobile = edge-to-edge, desktop = centered card ───
   if (fullPage) {
     return (
-      <div className="w-full h-[100dvh] md:h-auto md:max-w-4xl md:mx-auto">
+      <div className="w-full fixed top-20 left-0 right-0 bottom-0 md:static md:h-auto md:max-w-4xl md:mx-auto">
         <div className="w-full h-full md:h-[700px] md:glass-plate md:rounded-2xl flex flex-col shadow-[0_15px_40px_rgba(0,0,0,0.6)] border-emerald-400/30 overflow-hidden bg-[#0b0f10] md:border" role="region" aria-label="Agri-SAW Chat">
           {chatContent}
         </div>
