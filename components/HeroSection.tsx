@@ -1,14 +1,21 @@
 "use client";
 import React from 'react';
 import { motion } from 'motion/react';
+import Image from 'next/image';
 import Link from 'next/link';
-
 export default function HeroSection() {
   return (
-    <section className="relative w-full min-h-[500px] flex items-center justify-center overflow-hidden pt-20 md:pt-10">
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/40 via-[#0b0f10] to-[#0b0f10]" />
+    <section className="relative w-full min-h-[520px] flex items-center justify-center overflow-hidden pt-20 md:pt-10">
+      <Image 
+        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSC6SoldAHyq6IdlaeMv9ciDRdr6Pzwsa2Zk3guZEanBYeF2Oc1LvlEc3ZLU5Fa6OB1Ig54MAgIMrZ5KJ44lUqWj4WxVtzA5pZh93iMik49lFxWaaIgc3rTRXEKSRmmeTPpYfJEe1LUQDgBdU3Rb8gfgoApyg9lSEja-ZQY5AGao6ZGu-x-Z53AgwOP_av0tJ6O8tqY3hC-Ns3X_0x6nKeHzOrQg0BQ9Gn44XLD9ikBSQwxQ6McinKoUx41Y04D8fkK8uvJK3AhuK2"
+        alt="Lahan Pertanian"
+        fill
+        className="object-cover mix-blend-screen opacity-30 z-[-2]"
+        unoptimized
+        referrerPolicy="no-referrer"
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/50 via-[#0b0f10]/80 to-[#0b0f10] z-[-1]" />
       <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f10] via-transparent to-transparent z-[1]" />
-      
       <div className="text-center px-6 max-w-4xl mx-auto relative z-10 w-full mb-10 mt-8 md:mt-0">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
