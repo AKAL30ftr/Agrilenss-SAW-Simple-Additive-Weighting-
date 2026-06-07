@@ -310,7 +310,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: 'Mengerti, lanjut konsultasi' },
-      { id: nextMsgId(), role: 'assistant', content: questionText },
+      { id: nextMsgId(), role: 'assistant', content: ringkasanMessage(userName, userGender) + '\n\n---\n\n' + questionText },
     ]);
   };
 
@@ -330,14 +330,10 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       setCollectedParams(data.userValues || null);
       setPhase('confirming');
     } else {
-      // Ask next param
-      const nextParam = remaining[0];
-      const questionFn = PARAM_QUESTION_MESSAGES[nextParam];
-      const questionText = questionFn ? questionFn(userName, userGender) : '';
+      // Ask next param — only push data.message (already contains the next question from API)
       setMessages((prev) => [
         ...prev,
         { id: nextMsgId(), role: 'assistant', content: data.message },
-        { id: nextMsgId(), role: 'assistant', content: questionText },
       ]);
     }
   }, [userGender, userName]);
