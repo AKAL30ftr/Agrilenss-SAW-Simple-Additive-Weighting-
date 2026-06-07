@@ -324,14 +324,19 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const advanceCollecting = useCallback((data: { userValues?: Record<string, unknown>; missingParams?: string[]; message: string }) => {
     if (data.userValues) {
       setPreviousParams(data.userValues);
-      setCollectedParams(data.userValues);
     }
     const remaining = data.missingParams || [];
     setCurrentMissingParams(remaining);
-
     if (remaining.length === 0) {
       // All params collected → go to confirmation
-      setCollectedParams(data.userValues || null);
+      const idParams: Record<string, unknown> = {};
+      if (data.userValues) {
+        const keyMap: Record<string, string> = { elevation: 'ketinggian', rainfall: 'curah hujan', pH: 'pH tanah', texture: 'tekstur tanah', light: 'intensitas cahaya' };
+        for (const [eng, id] of Object.entries(keyMap)) {
+          if (data.userValues[eng] != null) idParams[id] = data.userValues[eng];
+        }
+      }
+      setCollectedParams(idParams);
       setPhase('confirming');
     } else {
       // Ask next param — only push data.message (already contains the next question from API)
@@ -563,22 +568,27 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       if (data.missingParams) setCurrentMissingParams(data.missingParams);
 
       // Handle all-crops-eliminated
+      // Handle all-crops-eliminated
       if (data.mode === 'all-eliminated' || (data.eliminated && data.eliminated.length > 0 && (!data.surviving || data.surviving.length === 0))) {
         const eliminated = data.eliminated || [];
         setEliminatedCrops(eliminated);
         const oorParams = extractOutOfRangeParams(eliminated);
         setOutOfRangeParams(oorParams);
         const sal = sapaan(userGender);
-        const eliminationList = eliminated
-          .map((e: { name: string; reasons: string[] }) => `• ${e.name}: ${e.reasons.join('; ')}`)
-          .join('\n');
+        // Build conversational summary per parameter
+        const paramIssues: string[] = [];
+        if (oorParams.includes('ketinggian')) paramIssues.push('ketinggian lahan Bapak di 900 mdpl terlalu tinggi untuk semua komoditas');
+        if (oorParams.includes('curah hujan')) paramIssues.push('curah hujan terlalu rendah untuk semua komoditas');
+        if (oorParams.includes('pH tanah')) paramIssues.push('kondisi tanah kurang sesuai');
+        if (oorParams.includes('tekstur tanah')) paramIssues.push('tekstur tanah kurang sesuai');
+        if (oorParams.includes('intensitas cahaya')) paramIssues.push('intensitas cahaya kurang sesuai');
+        const issueText = paramIssues.length > 0
+          ? paramIssues.join('. ') + '.'
+          : 'kondisi lahan Bapak belum sesuai dengan kebutuhan tanaman yang tersedia.';
         const message = [
-          `Maaf, ${sal} ${userName}, sepertinya belum ada tanaman yang cocok dengan kondisi lahan ${sal} saat ini.`,
+          `Maaf, ${sal} ${userName}. Berdasarkan data yang Bapak masukkan, semua tanaman belum cocok karena ${issueText}`,
           '',
-          'Berikut alasan mengapa masing-masing tanaman tidak cocok:',
-          eliminationList,
-          '',
-          `Jangan berkecil hati, ${sal}. Saya bisa bantu ${sal} mempelajari cara memperbaiki kondisi lahan. Silakan pilih topik di bawah ini.`,
+          `Tapi jangan khawatir, ${sal}. Saya bisa bantu Bapak mempelajari cara memperbaiki kondisi lahan. Silakan pilih topik di bawah ini, ${sal}.`,
         ].join('\n');
         setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: message }]);
         setPhase('done');
@@ -592,12 +602,12 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setEliminatedCrops(data.eliminated || []);
         setShowPreferences(true);
         setPhase('preference');
-        const sal = sapaan(userGender);
+        const sal2 = sapaan(userGender);
         const cropList = surviving.map((s: { name: string }) => s.name).join(', ');
         setMessages((prev) => [...prev, {
           id: nextMsgId(),
           role: 'assistant',
-          content: `Bagus, ${sal} ${userName}! Dari 6 jenis tanaman, ada ${surviving.length} yang cocok dengan lahan ${sal}: ${cropList}.\n\nSekarang, untuk menentukan ranking terbaik, saya perlu tahu prioritas ${sal}. Mana yang lebih penting?\n\n• Biaya tanam yang murah?\n• Harga jual yang tinggi?\n• Hasil panen yang banyak?\n• Risiko yang rendah?\n• Permintaan pasar yang tinggi?\n\n${sal} bisa pilih satu atau lebih, ${sal.split(' ')[0]}.`,
+          content: `Bagus, ${sal2} ${userName}! Dari 6 jenis tanaman, ada ${surviving.length} yang cocok dengan lahan ${sal2}: ${cropList}.\n\nSekarang, untuk menentukan ranking terbaik, saya perlu tahu prioritas ${sal2}. Mana yang lebih penting?\n\n• Biaya tanam yang murah?\n• Harga jual yang tinggi?\n• Hasil panen yang banyak?\n• Risiko yang rendah?\n• Permintaan pasar yang tinggi?\n\n${sal2} bisa pilih satu atau lebih.`,
         }]);
         return;
       }
@@ -644,13 +654,13 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setSelectedPreferences([]);
     setShowPreferences(false);
     setReturningToRingkasan(false);
-
+    setCurrentMissingParams([]);
     // Go back to ringkasan (Phase 2)
     setPhase('ringkasan');
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: 'Ulangi konsultasi' },
-      { id: nextMsgId(), role: 'assistant', content: `Baik, ${sapaan(userGender)} ${userName}. Kita ulang dari awal ya. Silakan periksa data lahan Anda lagi.` },
+      { id: nextMsgId(), role: 'assistant', content: `Baik, ${sapaan(userGender)} ${userName}. Kita ulang dari awal ya, Pak. Silakan isi ulang data lahan Bapak.` },
     ]);
   };
 
