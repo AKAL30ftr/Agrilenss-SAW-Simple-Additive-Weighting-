@@ -146,9 +146,9 @@ function ringkasanMessage(name: string, gender: 'laki' | 'perempuan' | ''): stri
     '',
     `Saya akan membantu ${salam} memilih komoditas terbaik untuk lahan ${salam}. Caranya begini:`,
     '',
-    'Pertama, saya akan menanyakan 5 kondisi lahan — seperti ketinggian, curah hujan, dan kondisi tanah. Nanti saya cocokkan dengan 6 jenis tanaman: Padi, Jagung, Kedelai, Cabai, Bawang Merah, dan Bawang Putih.',
+    'Pertama, saya akan menanyakan 5 kondisi lahan, seperti ketinggian, curah hujan, dan kondisi tanah. Nanti saya cocokkan dengan 6 jenis tanaman: Padi, Jagung, Kedelai, Cabai, Bawang Merah, dan Bawang Putih.',
     '',
-    'Tanaman yang cocok dengan lahan, kemudian saya hitung mana yang paling menguntungkan — dilihat dari biaya tanam, harga jual, sampai risikonya.',
+    'Tanaman yang cocok dengan lahan, kemudian saya hitung mana yang paling menguntungkan, dilihat dari biaya tanam, harga jual, sampai risikonya.',
     '',
     `Gampangnya begitu, ${salam.split(' ')[0]}. Ada yang ingin ditanyakan dulu, atau langsung mulai?`,
   ].join('\n');
@@ -314,7 +314,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: 'Mengerti, lanjut konsultasi' },
-      { id: nextMsgId(), role: 'assistant', content: ringkasanMessage(userName, userGender) + '\n\n' + questionText },
+      { id: nextMsgId(), role: 'assistant', content: questionText },
     ]);
   };
 
@@ -650,7 +650,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: 'Ulangi konsultasi' },
-      { id: nextMsgId(), role: 'assistant', content: ringkasanMessage(userName, userGender) },
+      { id: nextMsgId(), role: 'assistant', content: `Baik, ${sapaan(userGender)} ${userName}. Kita ulang dari awal ya. Silakan periksa data lahan Anda lagi.` },
     ]);
   };
 
