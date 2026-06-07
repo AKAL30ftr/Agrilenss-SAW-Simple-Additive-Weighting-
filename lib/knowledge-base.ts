@@ -554,11 +554,11 @@ export function generateFollowUpQuestion(missingParams: string[]): string | null
   if (missingParams.length === 0) return null;
 
   const questions: Record<string, string> = {
-    'ketinggian': '📍 Berapa ketinggian lahan Anda? (contoh: 200 mdpl untuk dataran rendah, 800+ mdpl untuk pegunungan, atau bilang "dataran rendah"/"pegunungan")',
-    'curah hujan': '🌧️ Bagaimana curah hujan di wilayah Anda? (hampir tiap hari / sering / cukup / jarang)',
-    'pH tanah': '🔬 Bagaimana kondisi tanah Anda? (tanaman sering menguning/kerdil = asam, tumbuh subur = netral, atau sebutkan pH jika tahu)',
-    'tekstur tanah': '🤲 Bagaimana tekstur tanah Anda saat basah? (lengket/liat, gembur/lempung, atau kasar/berpasir)',
-    'intensitas cahaya': '☀️ Berapa jam lahan Anda terpapar sinar matahari langsung per hari?',
+    'ketinggian': 'Baik, selanjutnya saya ingin tahu soal ketinggian lahan Bapak. Ini penting karena beda ketinggian, beda juga suhu dan jenis tanaman yang bisa tumbuh. Kira-kira lahan Bapak di dataran rendah, sedang, atau pegunungan?',
+    'curah hujan': 'Oke, selanjutnya saya ingin menanyakan terkait curah hujan di lingkungan lokasi Bapak. Air adalah kebutuhan utama tanaman, jadi ini salah satu hal yang paling penting. Kira-kira seberapa sering hujannya, Pak?',
+    'pH tanah': 'Baik, selanjutnya soal kondisi tanah. Ini agak sulit diamati langsung, tapi Bapak pernah tidak melihat tanaman di lahan Bapak sering menguning atau kerdil? Atau tumbuh biasa saja?',
+    'tekstur tanah': 'Oke, coba Bapak perhatikan tanah di lahan Bapak. Kalau diambil dan dibasahi, terasa lengket tidak? Atau justru kasar seperti pasir?',
+    'intensitas cahaya': 'Baik, terakhir, saya ingin tahu soal sinar matahari. Kira-kira lahan Bapak terpapar matahari berapa jam sehari?',
   };
 
   // Ask highest priority missing param first

@@ -60,38 +60,42 @@ function extractOutOfRangeParams(eliminated: Array<{ name: string; reasons: stri
 // ─── Quick replies per parameter ─────────────────────────────────────
 const QUICK_REPLIES: Record<string, QuickReply[]> = {
   'ketinggian': [
-    { label: 'Dataran rendah (seperti pantai/flat area)', value: 'lahan saya di dataran rendah 200 mdpl' },
-    { label: 'Dataran sedang (area berketinggian sedang)', value: 'lahan saya di dataran sedang 500 mdpl' },
-    { label: 'Pegunungan (area tinggi/lereng gunung)', value: 'lahan saya di pegunungan 900 mdpl' },
+    { label: 'Dataran rendah', value: 'lahan saya di dataran rendah 200 mdpl' },
+    { label: 'Dataran sedang', value: 'lahan saya di dataran sedang 500 mdpl' },
+    { label: 'Pegunungan', value: 'lahan saya di pegunungan 900 mdpl' },
     { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
+    { label: 'Saya kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
   ],
   'curah hujan': [
     { label: 'Hampir setiap hari hujan', value: 'hujan hampir tiap hari' },
-    { label: 'Cukup sering (sekali sehari)', value: 'hujan sering' },
+    { label: 'Cukup sering', value: 'hujan sering' },
     { label: 'Cukup (beberapa kali seminggu)', value: 'curah hujan cukup' },
-    { label: 'Jarang (hanya saat musim hujan)', value: 'hujan jarang' },
+    { label: 'Jarang', value: 'hujan jarang' },
     { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
+    { label: 'Saya kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
   ],
   'pH tanah': [
     { label: 'Tanaman sering menguning/kerdil', value: 'tanah asam tanaman sering menguning' },
     { label: 'Tumbuh biasa saja', value: 'tanah netral tumbuh biasa' },
     { label: 'Hijau dan subur', value: 'tanah subur hijau' },
     { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
+    { label: 'Saya kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
   ],
   'tekstur tanah': [
     { label: 'Lengket/liat saat basah', value: 'tanah liat lengket' },
-    { label: 'Gembur/lempung (mudah dibentuk)', value: 'tanah gembur lempung' },
+    { label: 'Gembur/lempung', value: 'tanah gembur lempung' },
     { label: 'Kasar/berpasir', value: 'tanah berpasir kasar' },
     { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
+    { label: 'Saya kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
   ],
   'intensitas cahaya': [
-    { label: 'Teduh (6-8 jam sinar matahari)', value: 'cahaya teduh 7 jam' },
-    { label: 'Sedang (8-10 jam sinar matahari)', value: 'cahaya 9 jam' },
-    { label: 'Penuh (12+ jam sinar matahari)', value: 'cahaya penuh 12 jam' },
+    { label: 'Teduh (6-8 jam)', value: 'cahaya teduh 7 jam' },
+    { label: 'Sedang (8-10 jam)', value: 'cahaya 9 jam' },
+    { label: 'Penuh (12+ jam)', value: 'cahaya penuh 12 jam' },
     { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
+    { label: 'Saya kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
   ],
 };
-
 const TOOLTIPS: Record<string, string> = {
   'ketinggian': 'Ketinggian menentukan suhu udara dan tekanan atmosfer, yang sangat memengaruhi jenis tanaman yang bisa tumbuh.',
   'curah hujan': 'Curah hujan menentukan ketersediaan air untuk tanaman. Terlalu banyak atau terlalu sedikit bisa merusak tanaman.',
@@ -310,7 +314,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: 'Mengerti, lanjut konsultasi' },
-      { id: nextMsgId(), role: 'assistant', content: ringkasanMessage(userName, userGender) + '\n\n---\n\n' + questionText },
+      { id: nextMsgId(), role: 'assistant', content: ringkasanMessage(userName, userGender) + '\n\n' + questionText },
     ]);
   };
 
