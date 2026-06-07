@@ -827,31 +827,31 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ════════════════════════════════════════════════════════════════════
   // RENDER: Ringkasan quick replies (Phase 2)
   // ════════════════════════════════════════════════════════════════════
-  const renderRingkasanQuickReplies = () => {
-    if (phase !== 'ringkasan' || faqView !== 'none') return null;
-    return (
-      <div className="pl-8 space-y-2" role="group" aria-label="Opsi ringkasan">
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-          <button
-            onClick={() => handleQuickReply('__RINGKASAN_LANJUT__')}
-            onKeyDown={(e) => handleQuickReplyKeyDown(e, '__RINGKASAN_LANJUT__')}
-            tabIndex={0}
-            className="text-xs px-3 py-2.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-all cursor-pointer min-h-[44px]"
-          >
-            Mengerti, lanjut konsultasi
-          </button>
-          <button
-            onClick={() => handleQuickReply('__RINGKASAN_FAQ__')}
-            onKeyDown={(e) => handleQuickReplyKeyDown(e, '__RINGKASAN_FAQ__')}
-            tabIndex={0}
-            className="text-xs px-3 py-2.5 rounded-full border border-blue-400/30 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20 transition-all cursor-pointer min-h-[44px]"
-          >
-            Ada pertanyaan dulu
-          </button>
-        </div>
+const renderRingkasanQuickReplies = () => {
+  if (phase !== 'ringkasan' || faqView !== 'none' || returningToRingkasan) return null;
+  return (
+    <div className="pl-8 space-y-2" role="group" aria-label="Opsi ringkasan">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+        <button
+          onClick={() => handleQuickReply('__RINGKASAN_LANJUT__')}
+          onKeyDown={(e) => handleQuickReplyKeyDown(e, '__RINGKASAN_LANJUT__')}
+          tabIndex={0}
+          className="text-xs px-3 py-2.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-all cursor-pointer min-h-[44px]"
+        >
+          Mengerti, lanjut konsultasi
+        </button>
+        <button
+          onClick={() => handleQuickReply('__RINGKASAN_FAQ__')}
+          onKeyDown={(e) => handleQuickReplyKeyDown(e, '__RINGKASAN_FAQ__')}
+          tabIndex={0}
+          className="text-xs px-3 py-2.5 rounded-full border border-blue-400/30 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20 transition-all cursor-pointer min-h-[44px]"
+        >
+          Ada pertanyaan dulu
+        </button>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   // ════════════════════════════════════════════════════════════════════
   // RENDER: Returning to ringkasan after FAQ
