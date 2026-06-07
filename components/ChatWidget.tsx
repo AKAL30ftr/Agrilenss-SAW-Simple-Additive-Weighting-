@@ -254,7 +254,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setMessages([{
-        id: nextMsgId(),
+        id: 'welcome-1',
         role: 'assistant',
         content: 'Halo! Selamat datang di Agri-SAW Pro. 🌾\n\nSaya adalah asisten virtual yang akan membantu merekomendasikan komoditas pertanian terbaik untuk lahan Anda.\n\nSebelum mulai, silakan isi data diri dulu ya:',
       }]);
