@@ -4,7 +4,7 @@ export class SAWEngine {
   /**
    * Calculates the Simple Additive Weighting (SAW) ranking for a given set of criteria and alternatives.
    */
-  static calculate(criteria: Criterion[], alternatives: Alternative[]): SAWResult[] {
+  static calculate(criteria: Criterion[], alternatives: Alternative[], globalMinMax?: Record<string, { min: number; max: number }>): SAWResult[] {
     if (alternatives.length === 0 || criteria.length === 0) return [];
 
     // 1. Calculate min and max values for each criterion to build the decision matrix ranges
@@ -12,7 +12,7 @@ export class SAWEngine {
     
     criteria.forEach((c) => {
       const values = alternatives.map((a) => a.values[c.id] || 0);
-      minMax[c.id] = {
+      minMax[c.id] = globalMinMax?.[c.id] ?? {
         min: Math.min(...values),
         max: Math.max(...values),
       };

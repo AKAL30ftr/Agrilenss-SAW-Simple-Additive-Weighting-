@@ -13,13 +13,13 @@ export default function MethodologyFoundation() {
     >
       <div className="flex items-center gap-4 mb-2">
         <ScrollText className="text-emerald-300 w-8 h-8" />
-        <h3 className="text-2xl font-bold text-white font-heading">Methodological Foundation</h3>
+        <h3 className="text-2xl font-bold text-white font-heading">Dasar Metode</h3>
       </div>
       <p className="text-base text-white/70 leading-relaxed font-body">
-        The Simple Additive Weighting (SAW) method, also known as weighted linear combination or scoring methods, is a multi-attribute decision-making (MADM) technique. It is based on the concept of a weighted average. The method evaluates a set of alternatives by combining the normalized values of their attributes with predetermined weights, calculating a final composite score for each option.
+        Metode Simple Additive Weighting (SAW), juga dikenal sebagai metode penjumlahan terbobot, adalah teknik pengambilan keputusan multi-atribut (MADM). Metode ini berbasis konsep rata-rata tertimbang. Sistem mengevaluasi sejumlah alternatif dengan menggabungkan nilai ternormalisasi dari setiap atributnya menggunakan bobot yang telah ditentukan, menghitung skor komposit akhir untuk setiap pilihan.
       </p>
       <p className="text-base text-white/70 leading-relaxed font-body">
-        In the context of AgriLens, this allows us to synthesize disparate data points—such as soil moisture, nutrient levels, and historical yield data—into a unified Advisory Index, ensuring that critical limiting factors are properly weighted in the final assessment.
+        Dalam konteks SPK pemilihan komoditas pertanian, metode ini memungkinkan sistem untuk menyintesis berbagai titik data yang berbeda — seperti jenis tanah, curah hujan, biaya produksi, harga jual, produktivitas, risiko gagal panen, dan permintaan pasar — menjadi indeks rekomendasi terpadu, memastikan bahwa faktor-faktor pembatas kritis diberi bobot yang tepat dalam penilaian akhir.
       </p>
     </motion.section>
   );
