@@ -30,10 +30,7 @@ export default function Header() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-4 md:gap-6 shrink-0">
-          <Link href="/analyze" className="hidden sm:inline-flex px-5 py-2.5 bg-emerald-400 text-black rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-emerald-300 transition-all">
-            Mulai
-          </Link>
+        <div className="flex items-center shrink-0">
           <button 
             className="lg:hidden text-white/70 hover:text-white transition-colors p-1"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
