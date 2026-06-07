@@ -22,7 +22,7 @@ export default function FAQ() {
                   <p className="text-slate-300 leading-relaxed whitespace-pre-line text-sm">{item.answer}</p>
                   {item.fixSuggestion && (
                     <div className="mt-3 p-3 bg-emerald-400/10 border border-emerald-400/20 rounded-lg">
-                      <p className="text-emerald-300 text-sm font-medium">💡 Saran perbaikan:</p>
+                      <p className="text-emerald-300 text-sm font-medium">Saran perbaikan:</p>
                       <p className="text-slate-300 text-sm mt-1">{item.fixSuggestion}</p>
                     </div>
                   )}

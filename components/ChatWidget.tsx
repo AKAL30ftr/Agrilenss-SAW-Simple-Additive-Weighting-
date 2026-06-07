@@ -60,40 +60,35 @@ function extractOutOfRangeParams(eliminated: Array<{ name: string; reasons: stri
 // ─── Quick replies per parameter ─────────────────────────────────────
 const QUICK_REPLIES: Record<string, QuickReply[]> = {
   'ketinggian': [
-    { label: 'Dataran rendah (0-400 mdpl)', value: 'lahan saya di dataran rendah 200 mdpl' },
-    { label: 'Dataran sedang (400-700 mdpl)', value: 'lahan saya di dataran sedang 500 mdpl' },
-    { label: 'Pegunungan (700+ mdpl)', value: 'lahan saya di pegunungan 900 mdpl' },
-    { label: 'Tidak tahu', value: '__ESCAPE_TIDAK_TAHU__' },
-    { label: 'Kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
+    { label: 'Dataran rendah (seperti pantai/flat area)', value: 'lahan saya di dataran rendah 200 mdpl' },
+    { label: 'Dataran sedang (area berketinggian sedang)', value: 'lahan saya di dataran sedang 500 mdpl' },
+    { label: 'Pegunungan (area tinggi/lereng gunung)', value: 'lahan saya di pegunungan 900 mdpl' },
+    { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
   ],
   'curah hujan': [
-    { label: 'Hampir tiap hari', value: 'hujan hampir tiap hari' },
-    { label: 'Sering (5x/minggu)', value: 'hujan sering' },
-    { label: 'Cukup (3-4x/minggu)', value: 'curah hujan cukup' },
-    { label: 'Jarang (1-2x/minggu)', value: 'hujan jarang' },
-    { label: 'Tidak tahu', value: '__ESCAPE_TIDAK_TAHU__' },
-    { label: 'Kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
+    { label: 'Hampir setiap hari hujan', value: 'hujan hampir tiap hari' },
+    { label: 'Cukup sering (sekali sehari)', value: 'hujan sering' },
+    { label: 'Cukup (beberapa kali seminggu)', value: 'curah hujan cukup' },
+    { label: 'Jarang (hanya saat musim hujan)', value: 'hujan jarang' },
+    { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
   ],
   'pH tanah': [
     { label: 'Tanaman sering menguning/kerdil', value: 'tanah asam tanaman sering menguning' },
     { label: 'Tumbuh biasa saja', value: 'tanah netral tumbuh biasa' },
     { label: 'Hijau dan subur', value: 'tanah subur hijau' },
-    { label: 'Tidak tahu', value: '__ESCAPE_TIDAK_TAHU__' },
-    { label: 'Kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
+    { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
   ],
   'tekstur tanah': [
     { label: 'Lengket/liat saat basah', value: 'tanah liat lengket' },
-    { label: 'Gembur/lempung', value: 'tanah gembur lempung' },
+    { label: 'Gembur/lempung (mudah dibentuk)', value: 'tanah gembur lempung' },
     { label: 'Kasar/berpasir', value: 'tanah berpasir kasar' },
-    { label: 'Tidak tahu', value: '__ESCAPE_TIDAK_TAHU__' },
-    { label: 'Kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
+    { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
   ],
   'intensitas cahaya': [
-    { label: 'Teduh (6-8 jam)', value: 'cahaya teduh 7 jam' },
-    { label: 'Sedang (8-10 jam)', value: 'cahaya 9 jam' },
-    { label: 'Penuh (12+ jam)', value: 'cahaya penuh 12 jam' },
-    { label: 'Tidak tahu', value: '__ESCAPE_TIDAK_TAHU__' },
-    { label: 'Kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
+    { label: 'Teduh (6-8 jam sinar matahari)', value: 'cahaya teduh 7 jam' },
+    { label: 'Sedang (8-10 jam sinar matahari)', value: 'cahaya 9 jam' },
+    { label: 'Penuh (12+ jam sinar matahari)', value: 'cahaya penuh 12 jam' },
+    { label: 'Saya tidak tahu persis', value: '__ESCAPE_TIDAK_TAHU__' },
   ],
 };
 
@@ -143,17 +138,42 @@ function sapaan(gender: 'laki' | 'perempuan' | ''): string {
 function ringkasanMessage(name: string, gender: 'laki' | 'perempuan' | ''): string {
   const salam = gender === 'perempuan' ? `Ibu ${name}` : `Bapak ${name}`;
   return [
-    `Terima kasih, ${salam}!`,
+    `Terima kasih, ${salam}! Sebelum kita mulai, izinkan saya menjelaskan singkat cara kerja sistem ini.`,
     '',
-    'Sistem kami menggunakan metode **SAW (Simple Additive Weighting)** untuk merekomendasikan komoditas terbaik.',
+    `Saya akan membantu ${salam} memilih komoditas terbaik untuk lahan ${salam}. Caranya begini:`,
     '',
-    '**Filter 1 — Agroklimat:** 5 parameter lahan Anda akan dicocokkan dengan syarat tumbuh 6 komoditas (Padi, Jagung, Kedelai, Cabai, Bawang Merah, Bawang Putih).',
+    'Pertama, saya akan menanyakan 5 kondisi lahan — seperti ketinggian, curah hujan, dan kondisi tanah. Nanti saya cocokkan dengan 6 jenis tanaman: Padi, Jagung, Kedelai, Cabai, Bawang Merah, dan Bawang Putih.',
     '',
-    '**Filter 2 — Ekonomi:** Komoditas yang lolos akan diurutkan berdasarkan kriteria ekonomi (biaya, harga, produktivitas, risiko, permintaan pasar).',
+    'Tanaman yang cocok dengan lahan, kemudian saya hitung mana yang paling menguntungkan — dilihat dari biaya tanam, harga jual, sampai risikonya.',
     '',
-    'Silakan pilih opsi di bawah untuk melanjutkan.',
+    `Gampangnya begitu, ${salam.split(' ')[0]}. Ada yang ingin ditanyakan dulu, atau langsung mulai?`,
   ].join('\n');
 }
+
+// ─── Parameter question messages (conversational) ────────────────────
+type ParamQuestionFn = (name: string, gender: 'laki' | 'perempuan' | '') => string;
+const PARAM_QUESTION_MESSAGES: Record<string, ParamQuestionFn> = {
+  'ketinggian': (name, gender) => {
+    const s = sapaan(gender);
+    return `Baik, ${s} ${name}. Selanjutnya saya ingin tahu soal ketinggian lahan ${s}. Ini penting karena beda ketinggian, beda juga suhu dan jenis tanaman yang bisa tumbuh. Kira-kira lahan ${s} di dataran rendah, sedang, atau pegunungan?`;
+  },
+  'curah hujan': (name, gender) => {
+    const s = sapaan(gender);
+    return `Oke, ${s} ${name}. Sekarang saya ingin menanyakan soal curah hujan di daerah ${s}. Air adalah kebutuhan utama tanaman, jadi ini salah satu hal yang paling penting. Kira-kira seberapa sering hujannya, ${s}? Hampir tiap hari, cukup sering, atau jarang?`;
+  },
+  'pH tanah': (name, gender) => {
+    const s = sapaan(gender);
+    return `Baik, ${s} ${name}. Selanjutnya soal kondisi tanah. Ini agak sulit diamati langsung, tapi ${s} pernah tidak melihat tanaman di lahan ${s} sering menguning atau kerdil? Atau tumbuh biasa saja?`;
+  },
+  'tekstur tanah': (name, gender) => {
+    const s = sapaan(gender);
+    return `Oke, ${s} ${name}. Coba ${s} perhatikan tanah di lahan ${s}. Kalau diambil dan dibasahi, terasa lengket tidak? Atau justru kasar seperti pasir? Ini akan membantu saya menentukan tanaman yang paling cocok.`;
+  },
+  'intensitas cahaya': (name, gender) => {
+    const s = sapaan(gender);
+    return `Baik, ${s} ${name}. Terakhir, saya ingin tahu soal sinar matahari. Kira-kira lahan ${s} terpapar matahari berapa jam sehari? Setiap tanaman butuh cahaya berbeda-beda, jadi informasi ini sangat membantu.`;
+  },
+};
 
 // =====================================================================
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────
@@ -188,7 +208,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // Loading screen state
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   // Flag: input is temporarily enabled after "Kurang yakin" escape
-  const [kurangYakinActive, setKurangYakinActive] = useState(false);
 
   // "Kembali ke ringkasan" flag: after FAQ answer, show ringkasan again
   const [returningToRingkasan, setReturningToRingkasan] = useState(false);
@@ -198,7 +217,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const nextMsgId = () => { msgIdCounter.current += 1; return `msg-${msgIdCounter.current}`; };
 
   // ─── Input lock ────────────────────────────────────────────────────
-  const isInputDisabled = (phase === 'welcome' || phase === 'ringkasan' || phase === 'collecting' || phase === 'confirming' || phase === 'preference' || phase === 'detail' || phase === 'done') && !kurangYakinActive;
+  const isInputDisabled = true; // completely locked to button UI
 
   // ─── localStorage: load on mount ──────────────────────────────────
   useEffect(() => {
@@ -233,7 +252,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       setMessages([{
         id: nextMsgId(),
         role: 'assistant',
-        content: 'Halo! Selamat datang di Agri-SAW Pro.\n\nSaya akan membantu merekomendasikan komoditas pertanian terbaik. Sebelum mulai, silakan isi data diri:',
+        content: 'Halo! Selamat datang di Agri-SAW Pro. 🌾\n\nSaya adalah asisten virtual yang akan membantu merekomendasikan komoditas pertanian terbaik untuk lahan Anda.\n\nSebelum mulai, silakan isi data diri dulu ya:',
       }]);
       setPhase('welcome');
     }
@@ -286,11 +305,12 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setPhase('collecting');
     setFaqView('none');
     const param = PARAM_ORDER[0];
-    const salam = sapaan(userGender);
+    const questionFn = PARAM_QUESTION_MESSAGES[param];
+    const questionText = questionFn ? questionFn(userName, userGender) : '';
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: 'Mengerti, lanjut konsultasi' },
-      { id: nextMsgId(), role: 'assistant', content: `${salam} ${userName}, saya akan menanyakan tentang **${PARAM_LABELS[param].label}**.` },
+      { id: nextMsgId(), role: 'assistant', content: questionText },
     ]);
   };
 
@@ -312,11 +332,12 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     } else {
       // Ask next param
       const nextParam = remaining[0];
-      const salam = sapaan(userGender);
+      const questionFn = PARAM_QUESTION_MESSAGES[nextParam];
+      const questionText = questionFn ? questionFn(userName, userGender) : '';
       setMessages((prev) => [
         ...prev,
         { id: nextMsgId(), role: 'assistant', content: data.message },
-        { id: nextMsgId(), role: 'assistant', content: `${salam} ${userName}, saya akan menanyakan tentang **${PARAM_LABELS[nextParam].label}**.` },
+        { id: nextMsgId(), role: 'assistant', content: questionText },
       ]);
     }
   }, [userGender, userName]);
@@ -337,11 +358,12 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       if (!response.ok) throw new Error(data.error || 'Gagal memproses');
       advanceCollecting(data);
     } catch (error) {
-      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: `Maaf, terjadi kesalahan: ${error instanceof Error ? error.message : 'Unknown error'}` }]);
+      const sal = sapaan(userGender);
+      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: `Maaf, ${sal} ${userName}, ada kendala teknis. Silakan coba lagi nanti, atau hubungi penyuluh pertanian setempat untuk konsultasi langsung.` }]);
     } finally {
       setIsLoading(false);
     }
-  }, [previousParams, uncertainParams, advanceCollecting]);
+  }, [previousParams, uncertainParams, advanceCollecting, userGender, userName]);
 
   const handleQuickReply = (value: string) => {
     if (isLoading) return;
@@ -448,7 +470,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setMessages([{
           id: nextMsgId(),
           role: 'assistant',
-          content: 'Halo! Selamat datang di Agri-SAW Pro.\n\nSaya akan membantu merekomendasikan komoditas pertanian terbaik. Sebelum mulai, silakan isi data diri:',
+          content: 'Halo! Selamat datang di Agri-SAW Pro. 🌾\n\nSaya adalah asisten virtual yang akan membantu merekomendasikan komoditas pertanian terbaik untuk lahan Anda.\n\nSebelum mulai, silakan isi data diri dulu ya:',
         }]);
         setUserName('');
         setUserGender('laki');
@@ -457,7 +479,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setEliminatedCrops([]);
         setOutOfRangeParams([]);
         setSelectedCropDetail(null);
-        setKurangYakinActive(false);
         setFaqView('none');
         return;
       }
@@ -469,22 +490,12 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
 
     if (value === '__ESCAPE_TIDAK_TAHU__') {
       const paramName = currentMissingParams[0] || 'parameter ini';
-      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'user', content: `Saya tidak tahu ${paramName}.` }]);
+      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'user', content: `Saya tidak tahu persis soal ${paramName}.` }]);
       callCollectingAPI(`[skip:${paramName}]`);
       return;
     }
 
-    if (value === '__ESCAPE_KURANG_YAKIN__') {
-      const paramName = currentMissingParams[0] || 'parameter ini';
-      if (paramName) setUncertainParams((prev) => new Set(prev).add(paramName));
-      setMessages((prev) => [
-        ...prev,
-        { id: nextMsgId(), role: 'user', content: `Saya kurang yakin soal ${paramName}.` },
-        { id: nextMsgId(), role: 'assistant', content: `Tidak masalah! Silakan ketik perkiraan ${paramName} Anda.` },
-      ]);
-      setKurangYakinActive(true);
-      return;
-    }
+
 
     // Normal reply
     setMessages((prev) => [...prev, { id: nextMsgId(), role: 'user', content: value }]);
@@ -492,16 +503,10 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   };
 
   // ════════════════════════════════════════════════════════════════════
-  // PHASE 3: TEXT INPUT (only after "Kurang yakin")
+  // TEXT INPUT (Disabled, keeping handler just in case)
   // ════════════════════════════════════════════════════════════════════
   const handleTextSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = inputValue.trim();
-    if (!trimmed || isLoading || !kurangYakinActive) return;
-    setInputValue('');
-    setKurangYakinActive(false);
-    setMessages((prev) => [...prev, { id: nextMsgId(), role: 'user', content: trimmed }]);
-    callCollectingAPI(trimmed);
   };
 
   // ════════════════════════════════════════════════════════════════════
@@ -565,13 +570,15 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setOutOfRangeParams(oorParams);
         const sal = sapaan(userGender);
         const eliminationList = eliminated
-          .map((e: { name: string; reasons: string[] }) => `• **${e.name}**: ${e.reasons.join('; ')}`)
+          .map((e: { name: string; reasons: string[] }) => `• ${e.name}: ${e.reasons.join('; ')}`)
           .join('\n');
         const message = [
-          `Maaf, ${sal} ${userName}, semua komoditas tidak cocok dengan kondisi lahan Anda.`,
+          `Maaf, ${sal} ${userName}, sepertinya belum ada tanaman yang cocok dengan kondisi lahan ${sal} saat ini.`,
           '',
-          '**Detail eliminasi:**',
+          'Berikut alasan mengapa masing-masing tanaman tidak cocok:',
           eliminationList,
+          '',
+          `Jangan berkecil hati, ${sal}. Saya bisa bantu ${sal} mempelajari cara memperbaiki kondisi lahan. Silakan pilih topik di bawah ini.`,
         ].join('\n');
         setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: message }]);
         setPhase('done');
@@ -586,10 +593,11 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setShowPreferences(true);
         setPhase('preference');
         const sal = sapaan(userGender);
+        const cropList = surviving.map((s: { name: string }) => s.name).join(', ');
         setMessages((prev) => [...prev, {
           id: nextMsgId(),
           role: 'assistant',
-          content: `Filter 1 Selesai, ${sal} ${userName}!\n\n${surviving.length} komoditas lolos: ${surviving.map((s: { name: string }) => s.name).join(', ')}\n\nSebelum menghitung ranking akhir, apa yang paling penting untuk Anda?\n(Pilih satu atau lebih)`,
+          content: `Bagus, ${sal} ${userName}! Dari 6 jenis tanaman, ada ${surviving.length} yang cocok dengan lahan ${sal}: ${cropList}.\n\nSekarang, untuk menentukan ranking terbaik, saya perlu tahu prioritas ${sal}. Mana yang lebih penting?\n\n• Biaya tanam yang murah?\n• Harga jual yang tinggi?\n• Hasil panen yang banyak?\n• Risiko yang rendah?\n• Permintaan pasar yang tinggi?\n\n${sal} bisa pilih satu atau lebih, ${sal.split(' ')[0]}.`,
         }]);
         return;
       }
@@ -602,7 +610,8 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: data.message }]);
       setPhase('done');
     } catch (error) {
-      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: `Maaf, terjadi kesalahan: ${error instanceof Error ? error.message : 'Unknown error'}` }]);
+      const sal = sapaan(userGender);
+      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: `Maaf, ${sal} ${userName}, ada kendala teknis. Silakan coba lagi nanti, atau hubungi penyuluh pertanian setempat untuk konsultasi langsung.` }]);
     } finally {
       setIsLoading(false);
       setShowLoadingScreen(false);
@@ -632,7 +641,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setFaqView('none');
     setFaqSelectedSection(null);
     setFaqSelectedItem(null);
-    setKurangYakinActive(false);
     setSelectedPreferences([]);
     setShowPreferences(false);
     setReturningToRingkasan(false);
@@ -651,7 +659,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: 'Selesai' },
-      { id: nextMsgId(), role: 'assistant', content: `Terima kasih, ${sal} ${userName}, telah menggunakan Agri-SAW Pro. Semoga lahan Anda makin produktif!\n\nPilih opsi di bawah untuk melanjutkan.` },
+      { id: nextMsgId(), role: 'assistant', content: `Terima kasih, ${sal} ${userName}, sudah menggunakan Agri-SAW Pro! 🙏\n\nSemoga rekomendasi ini membantu ${sal} menentukan tanaman yang terbaik untuk lahan. Kalau ada pertanyaan lain atau mau konsultasi ulang, jangan sungkan ya, ${sal.split(' ')[0]}.\n\nKalau hasil ini dirasa kurang sesuai, ${sal} juga bisa konsultasikan dengan penyuluh pertanian di daerah ${sal} untuk pendalaman lebih lanjut.\n\nMau konsultasi ulang atau ada pertanyaan lain, ${sal.split(' ')[0]}?` },
     ]);
     setPhase('done');
   };
@@ -713,7 +721,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     if (faqView === 'categories') {
       return (
         <div className="pl-8 space-y-2" role="group" aria-label="Kategori FAQ">
-          <p className="text-xs text-white/50 font-medium mb-2">Pilih topik yang ingin Anda pelajari:</p>
+          <p className="text-xs text-white/50 font-medium mb-2">Silakan pilih topik yang ingin dipelajari:</p>
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
             {FAQ_CONTENT.map((section) => (
               <button
@@ -738,7 +746,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     if (faqView === 'items' && faqSelectedSection) {
       return (
         <div className="pl-8 space-y-2" role="group" aria-label="Item FAQ">
-          <p className="text-xs text-white/50 font-medium mb-2">{faqSelectedSection.title}:</p>
+          <p className="text-xs text-white/50 font-medium mb-2">Pilih pertanyaan tentang {faqSelectedSection.title.toLowerCase()}:</p>
           <div className="flex flex-col gap-2">
             {faqSelectedSection.items.map((item) => (
               <button
@@ -1069,7 +1077,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
           <Bot className="w-3 h-3 text-emerald-400" />
         </div>
         <div className="rounded-2xl rounded-tl-sm p-3 border shadow-lg bg-white/10 backdrop-blur-md border-white/10 w-full">
-          <p className="text-slate-200 text-sm font-semibold mb-2">Semua data terkumpul! Silakan periksa:</p>
+          <p className="text-slate-200 text-sm font-semibold mb-2">Baik, {sapaan(userGender)}! Semua data lahan sudah terkumpul. Silakan periksa dulu, apakah data di bawah ini sudah benar:</p>
           <div className="space-y-1.5 mb-3">
             {PARAM_ORDER.map((key) => {
               const val = collectedParams[key];
@@ -1085,6 +1093,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
               );
             })}
           </div>
+          <p className="text-white/50 text-xs">Kalau ada yang salah, saya bisa ulangi dari awal.</p>
         </div>
       </div>
     );
@@ -1109,8 +1118,8 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
           <Bot className="w-3 h-3 text-emerald-400" />
         </div>
         <div className="rounded-2xl rounded-tl-sm p-3 border shadow-lg bg-white/10 backdrop-blur-md border-white/10 w-full">
-          <p className="text-slate-200 text-sm font-semibold mb-2">Detail Skor: {selectedCropDetail.name}</p>
-          <p className="text-white/50 text-xs mb-2">Skor SAW: <span className="text-emerald-300 font-bold">{selectedCropDetail.score}</span></p>
+          <p className="text-slate-200 text-sm font-semibold mb-2">Detail penilaian: {selectedCropDetail.name}</p>
+          <p className="text-white/50 text-xs mb-2">Berikut rincian penilaian untuk {selectedCropDetail.name}:</p>
           <div className="space-y-1.5">
             {Object.entries(nv).map(([key, val]) => (
               <div key={key} className="flex items-center justify-between text-xs">
@@ -1133,7 +1142,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const getInputHint = (): string => {
     if (phase === 'welcome') return 'Silakan isi form di atas';
     if (phase === 'ringkasan') return 'Pilih opsi di atas';
-    if (phase === 'collecting' && kurangYakinActive) return 'Ketik perkiraan Anda...';
     if (phase === 'collecting') return 'Pilih jawaban di atas';
     if (phase === 'confirming') return 'Klik tombol di atas';
     if (phase === 'preference') return 'Pilih preferensi di atas';
@@ -1217,7 +1225,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-2xl rounded-tl-sm p-2.5 border border-white/10">
               <p className="text-slate-200 text-sm">
-                Terima kasih atas kesabarannya, {sapaan(userGender)}. Hasil perhitungan sedang disusun<AnimatedDots />
+                Terima kasih atas kesabarannya, {sapaan(userGender)} {userName}. Hasil perhitungan sedang disusun<AnimatedDots />
               </p>
             </div>
           </div>
@@ -1230,7 +1238,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
               <Bot className="w-3 h-3 text-emerald-400" />
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-2xl rounded-tl-sm p-2.5 border border-white/10">
-              <p className="text-slate-200 text-sm">Sedang menganalisis...</p>
+              <p className="text-slate-200 text-sm">Sedang menganalisis<AnimatedDots /></p>
             </div>
           </div>
         )}
@@ -1296,7 +1304,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
           <div className="pl-8 space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-xs text-white/50 font-medium">
-                Mengapa ditanya <span className="text-emerald-400/70">{currentParam}</span>?
+                Mengapa saya menanyakan <span className="text-emerald-400/70">{currentParam}</span>?
               </span>
               {currentTooltip && (
                 <button
@@ -1389,7 +1397,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
           </form>
         )}
         <div className="text-center">
-          <span className="text-[9px] text-white/30">AI dapat membuat kesalahan. Verifikasi hasil dengan ahli pertanian.</span>
+          <span className="text-[9px] text-white/30">AI dapat membuat kesalahan. Verifikasi hasil dengan penyuluh pertanian setempat.</span>
         </div>
       </div>
     </>
