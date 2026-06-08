@@ -11,6 +11,7 @@ import {
   TOOLTIPS,
   PARAM_QUESTION_MESSAGES,
   PARAM_TO_FAQ,
+  MAX_PREFERENCE_SELECTION,
 } from '@/lib/chat/constants';
 import {
   extractOutOfRangeParams,
@@ -454,7 +455,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setMessages((prev) => [...prev, {
           id: nextMsgId(),
           role: 'assistant',
-          content: 'Bagus, ' + sal2 + ' ' + userName + '! Dari 6 jenis tanaman, ada ' + surviving.length + ' yang cocok dengan lahan ' + sal2 + ': ' + cropList + '.\n\nSekarang, untuk menentukan ranking terbaik, saya perlu tahu prioritas ' + sal2 + '. Mana yang lebih penting?\n\n• Biaya tanam yang murah?\n• Harga jual yang tinggi?\n• Hasil panen yang banyak?\n• Risiko yang rendah?\n• Permintaan pasar yang tinggi?\n\n' + sal2 + ' bisa pilih satu atau lebih.',
+          content: 'Bagus, ' + sal2 + ' ' + userName + '! Dari 6 jenis tanaman, ada ' + surviving.length + ' yang cocok dengan lahan ' + sal2 + ': ' + cropList + '.\n\nSekarang, untuk menentukan ranking terbaik, saya perlu tahu prioritas ' + sal2 + '. Mana yang lebih penting?\n\n• Biaya tanam yang murah?\n• Harga jual yang tinggi?\n• Hasil panen yang banyak?\n• Risiko yang rendah?\n• Permintaan pasar yang tinggi?\n\nMaksimal bisa pilih 3, ' + sal2 + '.',
         }]);
         return;
       }
@@ -483,7 +484,11 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
 
   const handleTogglePreference = (criterionId: string) => {
     setSelectedPreferences((prev) =>
-      prev.includes(criterionId) ? prev.filter((id) => id !== criterionId) : [...prev, criterionId]
+      prev.includes(criterionId)
+        ? prev.filter((id) => id !== criterionId)
+        : prev.length >= MAX_PREFERENCE_SELECTION
+          ? prev
+          : [...prev, criterionId]
     );
   };
 

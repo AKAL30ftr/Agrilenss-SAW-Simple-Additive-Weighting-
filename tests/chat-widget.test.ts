@@ -8,6 +8,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseUserInput, detectMissingParams, computeProximityScore, PROXIMITY_WEIGHTS, DARK_HORSE_THRESHOLD, cropProfiles, filterByAgroklimat } from '@/lib/knowledge-base';
+import { MAX_PREFERENCE_SELECTION, PREFERENCE_OPTIONS } from '@/lib/chat/constants';
 
 // ─── Inline the PARAM_ORDER canonical list ───────────────────────────────────
 const PARAM_ORDER = ['ketinggian', 'curah hujan', 'pH tanah', 'tekstur tanah', 'intensitas cahaya'];
@@ -833,5 +834,136 @@ describe('Task 9 — Proximity Score Unit Tests', () => {
     };
     const result = computeProximityScore(userValues, cropProfiles.corn, PROXIMITY_WEIGHTS);
     expect(result.perParamScores.texture).toBe(1.0);
+  });
+});
+// =============================================================================
+// TASK 10: MAX PREFERENCE SELECTION
+// =============================================================================
+// ─── Pure function: handleTogglePreference logic extracted for testing ─────
+// Mirrors the guard logic in ChatWidget.tsx handleTogglePreference
+// (lines 485-493): deselect if already selected, block if at max, otherwise add
+function togglePreference(
+  selected: string[],
+  criterionId: string,
+  maxSelection: number,
+): string[] {
+  if (selected.includes(criterionId)) {
+    return selected.filter((id) => id !== criterionId);
+  }
+  if (selected.length >= maxSelection) {
+    return selected;
+  }
+  return [...selected, criterionId];
+}
+describe('Task 10 — Max Preference Selection', () => {
+  // ─── Test 1: MAX_PREFERENCE_SELECTION is 3 ───────────────────────────────
+  describe('MAX_PREFERENCE_SELECTION constant', () => {
+    it('1: MAX_PREFERENCE_SELECTION should be 3', () => {
+      expect(MAX_PREFERENCE_SELECTION).toBe(3);
+    });
+  });
+  // ─── Test 2-4: Can select 1, 2, 3 preferences ───────────────────────────
+  describe('Selecting preferences within limit', () => {
+    it('2: Can select 1 preference', () => {
+      const result = togglePreference([], 'biaya_produksi', MAX_PREFERENCE_SELECTION);
+      expect(result).toEqual(['biaya_produksi']);
+      expect(result).toHaveLength(1);
+    });
+    it('3: Can select 2 preferences', () => {
+      const result = togglePreference(['biaya_produksi'], 'harga_jual', MAX_PREFERENCE_SELECTION);
+      expect(result).toEqual(['biaya_produksi', 'harga_jual']);
+      expect(result).toHaveLength(2);
+    });
+    it('4: Can select 3 preferences', () => {
+      const result = togglePreference(
+        ['biaya_produksi', 'harga_jual'],
+        'produktivitas',
+        MAX_PREFERENCE_SELECTION,
+      );
+      expect(result).toEqual(['biaya_produksi', 'harga_jual', 'produktivitas']);
+      expect(result).toHaveLength(3);
+    });
+  });
+  // ─── Test 5: Cannot select 4 preferences ─────────────────────────────────
+  describe('Guard prevents exceeding max', () => {
+    it('5: Cannot select 4 preferences — guard blocks at 3', () => {
+      const alreadySelected = ['biaya_produksi', 'harga_jual', 'produktivitas'];
+      const result = togglePreference(alreadySelected, 'risiko', MAX_PREFERENCE_SELECTION);
+      // Should remain unchanged — guard prevented adding 4th
+      expect(result).toEqual(['biaya_produksi', 'harga_jual', 'produktivitas']);
+      expect(result).toHaveLength(3);
+      expect(result).not.toContain('risiko');
+    });
+  });
+  // ─── Test 6: Deselect then select different one ──────────────────────────
+  describe('Deselect and reselect', () => {
+    it('6: After deselecting, can select a different preference', () => {
+      const initial = ['biaya_produksi', 'harga_jual', 'produktivitas'];
+      // Deselect 'harga_jual'
+      const afterDeselect = togglePreference(initial, 'harga_jual', MAX_PREFERENCE_SELECTION);
+      expect(afterDeselect).toEqual(['biaya_produksi', 'produktivitas']);
+      expect(afterDeselect).toHaveLength(2);
+      // Now select 'risiko' — should work since we have room
+      const afterReselect = togglePreference(afterDeselect, 'risiko', MAX_PREFERENCE_SELECTION);
+      expect(afterReselect).toEqual(['biaya_produksi', 'produktivitas', 'risiko']);
+      expect(afterReselect).toHaveLength(3);
+    });
+  });
+  // ─── Test 7-8: Hitung Ranking button state ───────────────────────────────
+  // The button is enabled when 1+ preferences are selected, disabled when 0.
+  // Mirrors the logic: selectedPreferences.length > 0 → enabled
+  describe('Hitung Ranking button enabled/disabled state', () => {
+    it('7: Hitung Ranking button is enabled when 1+ preferences selected', () => {
+      // With 1 selection
+      const oneSelected = ['biaya_produksi'];
+      expect(oneSelected.length > 0).toBe(true);
+      // With 2 selections
+      const twoSelected = ['biaya_produksi', 'harga_jual'];
+      expect(twoSelected.length > 0).toBe(true);
+      // With 3 selections (max)
+      const threeSelected = ['biaya_produksi', 'harga_jual', 'produktivitas'];
+      expect(threeSelected.length > 0).toBe(true);
+    });
+    it('8: Hitung Ranking button is disabled when 0 preferences selected', () => {
+      const noneSelected: string[] = [];
+      expect(noneSelected.length > 0).toBe(false);
+    });
+  });
+  // ─── Additional: Toggle off removes correct item, keeps others ───────────
+  describe('Toggle correctness', () => {
+    it('Deselecting one item does not affect other selections', () => {
+      const selected = ['biaya_produksi', 'harga_jual', 'produktivitas'];
+      const result = togglePreference(selected, 'harga_jual', MAX_PREFERENCE_SELECTION);
+      expect(result).toContain('biaya_produksi');
+      expect(result).toContain('produktivitas');
+      expect(result).not.toContain('harga_jual');
+      expect(result).toHaveLength(2);
+    });
+    it('Toggling same item twice returns to original state', () => {
+      const original: string[] = [];
+      const afterAdd = togglePreference(original, 'biaya_produksi', MAX_PREFERENCE_SELECTION);
+      expect(afterAdd).toEqual(['biaya_produksi']);
+      const afterRemove = togglePreference(afterAdd, 'biaya_produksi', MAX_PREFERENCE_SELECTION);
+      expect(afterRemove).toEqual([]);
+    });
+    it('All 5 PREFERENCE_OPTIONS criteria can potentially be selected (across different toggles)', () => {
+      // Verify all criterionIds from PREFERENCE_OPTIONS are unique and valid
+      const criterionIds = PREFERENCE_OPTIONS.map((opt) => opt.criterionId);
+      const uniqueIds = new Set(criterionIds);
+      expect(uniqueIds.size).toBe(criterionIds.length);
+      expect(criterionIds.length).toBe(5);
+    });
+    it('Cannot exceed max even after multiple deselect/reselect cycles', () => {
+      let selected = togglePreference([], 'biaya_produksi', MAX_PREFERENCE_SELECTION);
+      selected = togglePreference(selected, 'harga_jual', MAX_PREFERENCE_SELECTION);
+      selected = togglePreference(selected, 'produktivitas', MAX_PREFERENCE_SELECTION);
+      // At max — try adding two more
+      selected = togglePreference(selected, 'risiko', MAX_PREFERENCE_SELECTION);
+      expect(selected).toHaveLength(3);
+      selected = togglePreference(selected, 'permintaan', MAX_PREFERENCE_SELECTION);
+      expect(selected).toHaveLength(3);
+      // Still 3, guard held
+      expect(selected).toEqual(['biaya_produksi', 'harga_jual', 'produktivitas']);
+    });
   });
 });

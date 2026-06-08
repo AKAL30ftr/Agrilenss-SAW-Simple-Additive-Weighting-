@@ -1,4 +1,13 @@
 'use client';
+// Crop name → emoji mapping (matches page.tsx)
+const CROP_EMOJI: Record<string, string> = {
+  'Padi': '🌾',
+  'Jagung': '🌽',
+  'Kedelai': '🫘',
+  'Cabai Merah': '🌶️',
+  'Bawang Merah': '🧅',
+  'Bawang Putih': '🧄',
+};
 
 import { Bot } from 'lucide-react';
 
@@ -29,15 +38,35 @@ interface DoneViewProps {
   onReply: (value: string) => void;
 }
 
+/** Ranking label per rank (1-indexed) */
+function getRankingLabel(rank: number, total: number): string {
+  if (total === 1) return 'Paling cocok';
+  switch (rank) {
+    case 1: return 'Paling cocok';
+    case 2: return 'Tidak kalah bagus';
+    case 3: return 'Dapat dipertimbangkan';
+    default: return 'Dapat dipertimbangkan';
+  }
+}
+
+/** Get the top N crops from the surviving list */
+function topNCrops(crops: SurvivingCrop[], n: number): SurvivingCrop[] {
+  return crops.slice(0, n);
+}
+
 export default function DoneView({
   survivingCrops,
   eliminatedCrops,
   darkHorse,
   onReply,
 }: DoneViewProps) {
+  const totalSurviving = survivingCrops.length;
+  const displayCrops = topNCrops(survivingCrops, 3);
+  const hasMore = totalSurviving > 3;
+
   return (
     <>
-      {/* ── Valid / Recommendation section ── */}
+      {/* ── Top 3 Ranking section ── */}
       {survivingCrops.length > 0 && (
         <div className="flex gap-2 max-w-[92%]">
           <div className="w-6 h-6 rounded-full bg-emerald-400/20 flex-shrink-0 flex items-center justify-center border border-emerald-400/30 mt-1">
@@ -45,71 +74,45 @@ export default function DoneView({
           </div>
           <div className="rounded-2xl rounded-tl-sm p-3 border shadow-lg bg-emerald-400/5 backdrop-blur-md border-emerald-400/20 w-full">
             <p className="text-emerald-300 text-xs font-semibold mb-2">
-              🏆 Rekomendasi (kondisi sesuai):
+              🏆 Rekomendasi terbaik untuk lahan Bapak:
             </p>
-            <div className="space-y-1.5">
-              {survivingCrops.map((crop, i) => (
-                <div key={crop.name} className="text-xs">
-                  <span className="text-white/70 font-medium">
-                    {i + 1}. {crop.name}
-                  </span>{' '}
-                  <span className="text-emerald-300">— skor SAW: {crop.score}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Dark Horse section ── */}
-      {darkHorse.length > 0 && (
-        <div className="flex gap-2 max-w-[92%]">
-          <div className="w-6 h-6 rounded-full bg-amber-400/20 flex-shrink-0 flex items-center justify-center border border-amber-400/30 mt-1">
-            <Bot className="w-3 h-3 text-amber-400" />
-          </div>
-          <div className="rounded-2xl rounded-tl-sm p-3 border shadow-lg bg-amber-400/5 backdrop-blur-md border-amber-400/20 w-full">
-            <p className="text-amber-300 text-xs font-semibold mb-2">
-              🐴 Dark Horse (perlu perhatian tambahan)
-            </p>
-            <div className="space-y-2">
-              {darkHorse.map((crop) => (
-                <div key={crop.cropName} className="text-xs">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-white/70 font-medium">{crop.cropName}</span>
-                    <span className="text-amber-300 font-mono">
-                      kedekatan: {Math.round(crop.totalProximity * 100)}%
-                    </span>
+            <div className="space-y-3">
+              {displayCrops.map((crop, i) => {
+                const rank = i + 1;
+                const label = getRankingLabel(rank, totalSurviving);
+                const emoji = CROP_EMOJI[crop.name] ?? '🌱';
+                return (
+                  <div key={crop.name} className="text-xs">
+                    <div className="text-white/90 font-medium">
+                      {emoji} {crop.name}: {label}
+                    </div>
+                    {crop.explanation && (
+                      <p className="text-white/60 mt-0.5 ml-5 leading-relaxed">
+                        {crop.explanation}
+                      </p>
+                    )}
                   </div>
-                  {crop.failReasons.length > 0 && (
-                    <div className="ml-2 space-y-0.5">
-                      {crop.failReasons.map((reason, j) => (
-                        <div key={j} className="text-white/50">
-                          ⚠️ {reason}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {crop.advice && (
-                    <div className="ml-2 mt-1 text-amber-200/70">
-                      💡 {crop.advice}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
+            {hasMore && (
+              <p className="text-white/40 text-xs mt-2 italic">
+                Ada {totalSurviving - 3} tanaman lain yang juga lolos tapi skornya lebih rendah.
+              </p>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── Eliminated section ── */}
-      {eliminatedCrops.length > 0 && (
+      {/* ── Eliminated section (only when 1 surviving) ── */}
+      {totalSurviving === 1 && eliminatedCrops.length > 0 && (
         <div className="flex gap-2 max-w-[92%]">
           <div className="w-6 h-6 rounded-full bg-red-400/20 flex-shrink-0 flex items-center justify-center border border-red-400/30 mt-1">
             <Bot className="w-3 h-3 text-red-400" />
           </div>
           <div className="rounded-2xl rounded-tl-sm p-3 border shadow-lg bg-red-400/5 backdrop-blur-md border-red-400/20 w-full">
             <p className="text-red-300 text-xs font-semibold mb-2">
-              ❌ Tidak disarankan:
+              ❌ Tidak lolos ({eliminatedCrops.length} tanaman):
             </p>
             <div className="space-y-1.5">
               {eliminatedCrops.map((crop) => (
@@ -127,7 +130,7 @@ export default function DoneView({
       {survivingCrops.length > 0 && (
         <div className="pl-8 space-y-2" role="group" aria-label="Hasil rekomendasi">
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-            {survivingCrops.map((crop) => (
+            {displayCrops.map((crop) => (
               <button
                 key={crop.name}
                 onClick={() => onReply(`__DETAIL__${crop.name}`)}
