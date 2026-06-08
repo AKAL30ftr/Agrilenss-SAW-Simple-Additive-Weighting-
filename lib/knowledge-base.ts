@@ -46,7 +46,7 @@ export interface RecommendationResult extends SAWResult {
   explanation: string;
 }
 
-/** Parsed user input from NLP */
+/ Parsed user input from NLP */
 export interface ParsedUserInput {
   pH: number | null;           // 0-14 or null
   texture: string | null;      // e.g. "liat", "lempung", "pasir"
@@ -58,7 +58,7 @@ export interface ParsedUserInput {
   rawKeywords: string[];       // matched keywords for context
 }
 
-/** Filter 1 result for a single crop */
+/* Filter 1 result for a single crop */
 export interface Filter1Result {
   cropId: string;
   cropName: string;
@@ -68,7 +68,7 @@ export interface Filter1Result {
   rainfallScore: number;       // 0-1 normalized suitability
 }
 
-/** Filter 1 output */
+/* Filter 1 output */
 export interface Filter1Output {
   results: Filter1Result[];
   surviving: Filter1Result[];
@@ -88,7 +88,7 @@ export interface FullRecommendationResult {
   budgetWarning: string | null;
 }
 
-/** Agroklimat parameters per crop */
+/* Agroklimat parameters per crop */
 interface AgroklimatParams {
   phMin: number;
   phMax: number;
@@ -101,7 +101,7 @@ interface AgroklimatParams {
   rainfallMax: number;         // mm/tahun (normalized)
 }
 
-/** Economic parameters per crop */
+/* Economic parameters per crop */
 interface EconomicParams {
   biayaProduksi: number;       // Rp/ha
   hargaJual: number;           // Rp/kg
@@ -110,7 +110,7 @@ interface EconomicParams {
   permintaan: number;          // 1-5 (5=sangat tinggi)
 }
 
-/** Full crop profile */
+/* Full crop profile */
 interface CropProfile {
   id: string;
   name: string;
@@ -279,7 +279,7 @@ export const sawCriteria: Criterion[] = [
 // NLP PARSER — Observational input mapping
 // =============================================================================
 
-/** pH keyword mapping → numerical pH estimate */
+/* pH keyword mapping → numerical pH estimate */
 const phKeywords: Record<string, number> = {
   // masam
   'sangat masam': 4.0,
@@ -303,7 +303,7 @@ const phKeywords: Record<string, number> = {
   'basa': 7.5,
 };
 
-/** Texture keyword mapping → texture category */
+/* Texture keyword mapping → texture category */
 const textureKeywords: Record<string, string> = {
   // liat
   'lengket': 'liat',
@@ -327,7 +327,7 @@ const textureKeywords: Record<string, string> = {
   'hitam': 'lempung',
 };
 
-/** Elevation keyword mapping → elevation estimate (mdpl) */
+/* Elevation keyword mapping → elevation estimate (mdpl) */
 const elevationKeywords: Record<string, number> = {
   'dataran rendah': 200,
   'rendah': 200,
@@ -347,7 +347,7 @@ const elevationKeywords: Record<string, number> = {
   'hawa dingin': 1000,
 };
 
-/** Light keyword mapping → hours */
+/* Light keyword mapping → hours */
 const lightKeywords: Record<string, number> = {
   // rendah / teduh
   'teduh': 6,
@@ -367,7 +367,7 @@ const lightKeywords: Record<string, number> = {
   'langit cerah': 12,
 };
 
-/** Rainfall keyword mapping → mm/tahun estimate */
+/* Rainfall keyword mapping → mm/tahun estimate */
 const rainfallKeywords: Record<string, number> = {
   // sangat rendah (< 300mm/tahun)
   'kemarau': 250,
@@ -396,7 +396,7 @@ const rainfallKeywords: Record<string, number> = {
   'banjir': 3000,
 };
 
-/** Budget/modal keyword mapping → qualitative score */
+/* Budget/modal keyword mapping → qualitative score */
 const budgetKeywords: Record<string, number> = {
   'modal mepet': 2,
   'terbatas': 3,
@@ -411,7 +411,7 @@ const budgetKeywords: Record<string, number> = {
   'kurang': 3,
 };
 
-/** Land area keyword mapping → hectares estimate */
+/* Land area keyword mapping → hectares estimate */
 const areaKeywords: Record<string, number> = {
   'pekarangan': 0.05,
   'sempit': 0.1,
@@ -438,7 +438,7 @@ export const sentimentToWeightKeywords: Record<string, string[]> = {
   permintaan: ['cepat laku', 'banyak yang cari', 'pasar luas', 'permintaan', 'laris', 'serap pasar'],
 };
 
-/** Parse user free-text input into structured parameters */
+/* Parse user free-text input into structured parameters */
 export function parseUserInput(input: string): ParsedUserInput {
   const lower = normalizeText(input);
   const result: ParsedUserInput = {
@@ -538,18 +538,18 @@ export function parseUserInput(input: string): ParsedUserInput {
   return result;
 }
 
-/** Detect which critical params are missing */
-export function detectMissingParams(parsed: ParsedUserInput): string[] {
+/* Detect which critical params are missing */
+export function detectMissingParams(parsed: ParsedUserInput, uncertainParams: string[] = []): string[] {
   const missing: string[] = [];
-  if (parsed.elevation === null) missing.push('ketinggian');
-  if (parsed.rainfall === null) missing.push('curah hujan');
-  if (parsed.pH === null) missing.push('pH tanah');
-  if (parsed.texture === null) missing.push('tekstur tanah');
-  if (parsed.light === null) missing.push('intensitas cahaya');
+  if (parsed.elevation === null && !uncertainParams.includes('ketinggian')) missing.push('ketinggian');
+  if (parsed.rainfall === null && !uncertainParams.includes('curah hujan')) missing.push('curah hujan');
+  if (parsed.pH === null && !uncertainParams.includes('pH tanah')) missing.push('pH tanah');
+  if (parsed.texture === null && !uncertainParams.includes('tekstur tanah')) missing.push('tekstur tanah');
+  if (parsed.light === null && !uncertainParams.includes('intensitas cahaya')) missing.push('intensitas cahaya');
   return missing;
 }
 
-/** Generate follow-up question based on missing params */
+/* Generate follow-up question based on missing params */
 export function generateFollowUpQuestion(missingParams: string[]): string | null {
   if (missingParams.length === 0) return null;
 
@@ -570,7 +570,7 @@ export function generateFollowUpQuestion(missingParams: string[]): string | null
 // FILTER 1 — Boolean Elimination Engine (Hard Gate)
 // =============================================================================
 
-/** Normalize rainfall from various input units to mm/tahun for comparison */
+/* Normalize rainfall from various input units to mm/tahun for comparison */
 function normalizeRainfallToYearly(valueMm: number, inputText: string): number {
   const lower = normalizeText(inputText);
   // If the raw input mentioned "per bulan" or "bulan", multiply by 12
@@ -581,7 +581,7 @@ function normalizeRainfallToYearly(valueMm: number, inputText: string): number {
   return valueMm;
 }
 
-/** Check if texture matches any of the crop's accepted textures */
+/* Check if texture matches any of the crop's accepted textures */
 function textureMatches(userTexture: string, cropTextures: string[]): boolean {
   const normalized = normalizeText(userTexture);
   return cropTextures.some((ct) => normalized.includes(normalizeText(ct)) || normalizeText(ct).includes(normalized));
@@ -829,12 +829,12 @@ export function runFullPipeline(input: string): FullRecommendationResult {
       const cheapestProfile = cropProfiles[cheapest.alternativeId];
       const maxArea = cheapestProfile ? parsed.budget / cheapestProfile.economic.biayaProduksi : 0;
       budgetWarning =
-        `⚠️ **Peringatan Modal:** Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk luas ${parsed.landArea} ha pada semua komoditas yang direkomendasikan.\n\n` +
-        `💡 **Saran:** Kurangi luas lahan atau tambah modal. Untuk komoditas paling terjangkau (${cheapest.name}), luas maksimal yang disarankan: **${maxArea.toFixed(2)} ha**.`;
+        `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk luas ${parsed.landArea} ha pada semua komoditas yang direkomendasikan.\n\n` +
+        `💡 Saran: Kurangi luas lahan atau tambah modal. Untuk komoditas paling terjangkau (${cheapest.name}), luas maksimal yang disarankan: ${maxArea.toFixed(2)} ha.`;
     } else if (insufficientCrops.length > 0) {
       budgetWarning =
-        `⚠️ **Peringatan Modal:** Untuk luas ${parsed.landArea} ha, modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk: ${insufficientCrops.join(', ')}.\n\n` +
-        `💡 **Rekomendasi skala lahan:**\n${scaleRecommendations.map((s) => `- ${s}`).join('\n')}`;
+        `⚠️ Peringatan Modal: Untuk luas ${parsed.landArea} ha, modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk: ${insufficientCrops.join(', ')}.\n\n` +
+        `💡 Rekomendasi skala lahan:\n${scaleRecommendations.map((s) => `- ${s}`).join('\n')}`;
     }
   } else if (parsed.budget !== null && parsed.landArea === null && sawResults.length > 0) {
     // Budget provided but no landArea — give per-hectare warnings
@@ -848,11 +848,11 @@ export function runFullPipeline(input: string): FullRecommendationResult {
     }
     if (insufficientCrops.length === sawResults.length) {
       budgetWarning =
-        `⚠️ **Peringatan Modal:** Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar pada semua komoditas yang direkomendasikan.\n\n` +
-        `💡 **Saran:** Tambah modal atau pertimbangkan komoditas dengan biaya produksi lebih rendah.`;
+        `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar pada semua komoditas yang direkomendasikan.\n\n` +
+        `💡 Saran: Tambah modal atau pertimbangkan komoditas dengan biaya produksi lebih rendah.`;
     } else if (insufficientCrops.length > 0) {
       budgetWarning =
-        `⚠️ **Peringatan Modal:** Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar: ${insufficientCrops.join(', ')}.\n\n` +
+        `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar: ${insufficientCrops.join(', ')}.\n\n` +
         `💡 Komoditas lain dalam ranking tetap layak dipertimbangkan.`;
     }
   }
@@ -867,13 +867,13 @@ export function runFullPipeline(input: string): FullRecommendationResult {
     const eliminatedNames = filter1.eliminated.map(
       (e) => `${e.cropName} (${e.failReasons[0]})`
     );
-    message = `🌾 Rekomendasi utama: **${top.name}** (skor SAW: ${top.preferenceScore.toFixed(3)})\n\n`;
+    message = `🌾 Rekomendasi utama: ${top.name} (skor SAW: ${top.preferenceScore.toFixed(3)})\n\n`;
 
     if (eliminatedNames.length > 0) {
-      message += `❌ **Dieliminasikan:**\n${eliminatedNames.map((n) => `- ${n}`).join('\n')}\n\n`;
+      message += `❌ Dieliminasikan:\n${eliminatedNames.map((n) => `- ${n}`).join('\n')}\n\n`;
     }
 
-    message += `📊 **Ranking:**\n${sawResults.map((r, i) => `${i + 1}. ${r.name}: ${r.preferenceScore.toFixed(3)}`).join('\n')}\n\n`;
+    message += `📊 Ranking:\n${sawResults.map((r, i) => `${i + 1}. ${r.name}: ${r.preferenceScore.toFixed(3)}`).join('\n')}\n\n`;
 
     if (budgetWarning) {
       message += `\n${budgetWarning}\n\n`;

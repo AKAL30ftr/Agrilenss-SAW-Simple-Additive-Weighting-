@@ -61,12 +61,13 @@ export async function POST(request: NextRequest) {
     const userInput = typeof body.message === 'string' ? body.message.trim() : '';
     const previousParams = body.previousParams as ParsedUserInput | undefined;
     const preferences = Array.isArray(body.preferences) ? body.preferences as string[] : undefined;
+    const uncertainParams = Array.isArray(body.uncertainParams) ? body.uncertainParams as string[] : [];
     if (userInput.length > 500) {
       return withCors(
         NextResponse.json({ error: 'Input terlalu panjang. Maksimal 500 karakter.' }, { status: 400 })
       );
     }
-    if (!userInput.trim()) {
+    if (!userInput.trim() && !body.uncertainParams) {
       return withCors(
         NextResponse.json(
           { error: 'Pesan tidak boleh kosong' },
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 2: Detect missing params
-    const missingParams = detectMissingParams(parsed);
+    const missingParams = detectMissingParams(parsed, uncertainParams);
     const followUpQuestion = generateFollowUpQuestion(missingParams);
 
     // If critical params are missing, ask follow-up on every turn until all collected
@@ -115,15 +116,15 @@ export async function POST(request: NextRequest) {
     // Step 4: If all eliminated, return early with explanation
     if (filter1.allEliminated) {
       const eliminationDetails = filter1.eliminated
-        .map((e) => `- **${e.cropName}**: ${e.failReasons.join('; ')}`)
+        .map((e) => `- ${e.cropName}: ${e.failReasons.join('; ')}`)
         .join('\n');
 
       const message = [
-        '😔 Berdasarkan kondisi yang Anda berikan, sayangnya **semua komoditas** dieliminasikan:',
+        '😔 Berdasarkan kondisi yang Anda berikan, sayangnya semua komoditas dieliminasikan:',
         '',
         eliminationDetails,
         '',
-        '💡 **Saran:** Perbaiki drainase, pertimbangkan pengapuran untuk tanah terlalu asam, atau konsultasikan dengan penyuluh setempat untuk opsi lain.',
+        '💡 Saran: Perbaiki drainase, pertimbangkan pengapuran untuk tanah terlalu asam, atau konsultasikan dengan penyuluh setempat untuk opsi lain.',
       ].join('\n');
 
       return withCors(
@@ -169,12 +170,12 @@ export async function POST(request: NextRequest) {
         const cheapestProfile = cropProfiles[cheapest.alternativeId];
         const maxArea = cheapestProfile ? parsed.budget / cheapestProfile.economic.biayaProduksi : 0;
         apiBudgetWarning =
-          `⚠️ **Peringatan Modal:** Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk luas ${parsed.landArea} ha pada semua komoditas.\n\n` +
-          `💡 **Saran:** Kurangi luas lahan atau tambah modal. Untuk ${cheapest.name} (paling terjangkau), luas maksimal: **${maxArea.toFixed(2)} ha**.`;
+          `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk luas ${parsed.landArea} ha pada semua komoditas.\n\n` +
+          `💡 Saran: Kurangi luas lahan atau tambah modal. Untuk ${cheapest.name} (paling terjangkau), luas maksimal: ${maxArea.toFixed(2)} ha.`;
       } else if (insufficient.length > 0) {
         apiBudgetWarning =
-          `⚠️ **Peringatan Modal:** Untuk luas ${parsed.landArea} ha, modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk: ${insufficient.join(', ')}.\n\n` +
-          `💡 **Rekomendasi skala lahan:**\n${scaleRecs.map((s) => `- ${s}`).join('\n')}`;
+          `⚠️ Peringatan Modal: Untuk luas ${parsed.landArea} ha, modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk: ${insufficient.join(', ')}.\n\n` +
+          `💡 Rekomendasi skala lahan:\n${scaleRecs.map((s) => `- ${s}`).join('\n')}`;
       }
     } else if (parsed.budget !== null && parsed.landArea === null && sawResults.length > 0) {
       const insufficient: string[] = [];
@@ -187,11 +188,11 @@ export async function POST(request: NextRequest) {
       }
       if (insufficient.length === sawResults.length) {
         apiBudgetWarning =
-          `⚠️ **Peringatan Modal:** Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar pada semua komoditas.\n\n` +
-          `💡 **Saran:** Tambah modal atau pertimbangkan komoditas dengan biaya produksi lebih rendah.`;
+          `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar pada semua komoditas.\n\n` +
+          `💡 Saran: Tambah modal atau pertimbangkan komoditas dengan biaya produksi lebih rendah.`;
       } else if (insufficient.length > 0) {
         apiBudgetWarning =
-          `⚠️ **Peringatan Modal:** Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar: ${insufficient.join(', ')}.\n\n` +
+          `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar: ${insufficient.join(', ')}.\n\n` +
           `💡 Komoditas lain dalam ranking tetap layak dipertimbangkan.`;
       }
     }
@@ -199,24 +200,24 @@ export async function POST(request: NextRequest) {
     // Step 6: Build response message
     const topResult = sawResults[0];
     const eliminationSummary = filter1.eliminated
-      .map((e) => `• **${e.cropName}**: ${e.failReasons[0]}`)
+      .map((e) => `• ${e.cropName}: ${e.failReasons[0]}`)
       .join('\n');
 
     const rankingSummary = sawResults
-      .map((r, i) => `${i + 1}. **${r.name}** — skor SAW: ${r.preferenceScore.toFixed(3)}`)
+      .map((r, i) => `${i + 1}. ${r.name} — skor SAW: ${r.preferenceScore.toFixed(3)}`)
       .join('\n');
 
     const fallbackMessage = [
-      `🌾 **Rekomendasi Utama: ${topResult.name}** (skor: ${topResult.preferenceScore.toFixed(3)})`,
+      `🌾 Rekomendasi Utama: ${topResult.name} (skor: ${topResult.preferenceScore.toFixed(3)})`,
       '',
       filter1.eliminated.length > 0
-        ? `❌ **Dieliminasikan (${filter1.eliminated.length}):**\n${eliminationSummary}`
+        ? `❌ Dieliminasikan (${filter1.eliminated.length}):\n${eliminationSummary}`
         : '✅ Semua komoditas lolos Filter 1 (agroklimat).',
       '',
-      `📊 **Ranking SAW:**\n${rankingSummary}`,
+      `📊 Ranking SAW:\n${rankingSummary}`,
       ...(apiBudgetWarning ? ['', apiBudgetWarning] : []),
       '',
-      '⚠️ *Rekomendasi awal berdasarkan knowledge base. Validasi dengan penyuluh setempat dan data cuaca aktual sebelum keputusan tanam.*',
+      '⚠️ Rekomendasi awal berdasarkan knowledge base. Validasi dengan penyuluh setempat dan data cuaca aktual sebelum keputusan tanam.',
     ].join('\n');
 
     // Step 7: Try AI generation if configured
