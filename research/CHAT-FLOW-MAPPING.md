@@ -291,3 +291,49 @@ Options:
 | closing | DISABLED | Yes (2 options) | No | No |
 
 *Input box ENABLED only after "Kurang yakin" escape
+
+
+## 7. API CALL FLOW & DECISION TREE
+
+The ChatWidget uses a centralized API endpoint (/api/recommend) to drive the decision tree.
+
+### A. Collecting Phase (Parameter Collection)
+**Trigger:** User selects a quick reply in Phase 3.
+**API Request:**
+``json
+{
+  "message": "Pegunungan (700+ mdpl)",
+  "previousParams": { "elevation": "pegunungan" },
+  "uncertainParams": []
+}
+``
+**API Logic:**
+1. Matches the message to a parameter intent.
+2. Updates userValues.
+3. Checks userValues against required parameters.
+4. If missing, returns missingParams and 
+extQuestion.
+5. If fulfilled, returns missingParams: [].
+
+**Frontend Reaction:**
+- **missingParams > 0:** Renders next question and specific quick reply buttons.
+- **missingParams === 0:** Transitions to Phase 4 (Confirmation).
+
+### B. Hitung Rekomendasi (Filter 1)
+**Trigger:** User clicks "Hitung Rekomendasi" in Phase 4.
+**API Request:** Sends all 5 parameters with message = "Hitung rekomendasi".
+**API Logic:** Evaluates 6 crops. Returns surviving and eliminated arrays.
+**Frontend Reaction:**
+- **All eliminated:** Transitions to Phase 6 (Done) directly, showing FAQ links.
+- **Success:** Transitions to Phase 5 (Preference), prompting user to pick economic weights.
+
+### C. Hitung Ranking (Filter 2: SAW)
+**Trigger:** User selects preferences and clicks "Hitung Ranking" in Phase 5.
+**API Request:** Sends 5 parameters + preferences array.
+**API Logic:**
+1. Re-runs Filter 1.
+2. Applies SAW algorithm with dynamic weights based on preferences.
+3. Returns ranked surviving array with detailed scores.
+**Frontend Reaction:**
+- Transitions to Phase 6 (Result) showing Winner/Runner-up.
+- Generates dynamic detail buttons for each surviving crop to prevent duplicate buttons or dead ends.

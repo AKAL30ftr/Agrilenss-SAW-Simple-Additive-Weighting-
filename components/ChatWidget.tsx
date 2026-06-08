@@ -97,11 +97,11 @@ const QUICK_REPLIES: Record<string, QuickReply[]> = {
   ],
 };
 const TOOLTIPS: Record<string, string> = {
-  'ketinggian': 'Ketinggian menentukan suhu udara dan tekanan atmosfer, yang sangat memengaruhi jenis tanaman yang bisa tumbuh.',
-  'curah hujan': 'Curah hujan menentukan ketersediaan air untuk tanaman. Terlalu banyak atau terlalu sedikit bisa merusak tanaman.',
-  'pH tanah': 'pH tanah menentukan nutrisi yang tersedia bagi tanaman. Tanah terlalu asam atau basa bisa menghambat pertumbuhan.',
-  'tekstur tanah': 'Tekstur tanah menentukan drainase dan kemampuan menahan air. Berbeda tekstur, berbeda jenis tanaman yang cocok.',
-  'intensitas cahaya': 'Cahaya matahari dibutuhkan untuk fotosintesis. Kebutuhan cahaya berbeda untuk setiap jenis tanaman.',
+  'ketinggian': 'Kalau lahan di dataran tinggi, udaranya lebih dingin. Ada tanaman yang suka dingin, ada yang nggak. Makanya ketinggian perlu diperhatikan.',
+  'curah hujan': 'Air hujan itu sumber utama kehidupan tanaman. Kalau kebanyakan, tanaman bisa busuk. Kalau kekurangan, tanaman bisa mati.',
+  'pH tanah': 'Tanah yang terlalu asam atau terlalu basa bisa bikin tanaman nggak bisa makan dengan baik. Tanaman butuh tanah yang "pas" — nggak terlalu asam, nggak terlalu basa.',
+  'tekstur tanah': 'Tanah yang terlalu lengket (liat) susah ngalirin air, akarnya bisa busuk. Tanah yang terlalu berpasir cepet kering, air susah ditahan. Keduanya perlu perhatian khusus.',
+  'intensitas cahaya': 'Sinar matahari itu "makanan" tanaman. Kalau kurang, tanaman kurus. Kalau kebanyakan, bisa gosong. Setiap tanaman butuh porsi cahaya yang berbeda.',
 };
 
 const PARAM_LABELS: Record<string, { label: string; emoji: string; format: (v: unknown) => string }> = {
@@ -212,6 +212,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // Loading screen state
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   // Flag: input is temporarily enabled after "Kurang yakin" escape
+  const [escapeKurangYakinActive, setEscapeKurangYakinActive] = useState(false);
 
   // "Kembali ke ringkasan" flag: after FAQ answer, show ringkasan again
   const [returningToRingkasan, setReturningToRingkasan] = useState(false);
@@ -221,7 +222,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const nextMsgId = () => { msgIdCounter.current += 1; return `msg-${msgIdCounter.current}`; };
 
   // ─── Input lock ────────────────────────────────────────────────────
-  const isInputDisabled = true; // completely locked to button UI
+  const isInputDisabled = !escapeKurangYakinActive;
 
   // ─── localStorage: load on mount ──────────────────────────────────
   useEffect(() => {
@@ -256,7 +257,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       setMessages([{
         id: 'welcome-1',
         role: 'assistant',
-        content: 'Halo! Selamat datang di Agri-SAW Pro. 🌾\n\nSaya adalah asisten virtual yang akan membantu merekomendasikan komoditas pertanian terbaik untuk lahan Anda.\n\nSebelum mulai, silakan isi data diri dulu ya:',
+        content: 'Halo! Selamat datang di Agri-SAW Pro. 🌾\n\nSaya adalah asisten virtual yang akan membantu merekomendasikan komoditas pertanian terbaik untuk lahan Bapak/Ibu.\n\nSebelum mulai, silakan isi data diri dulu ya:',
       }]);
       setPhase('welcome');
     }
@@ -474,7 +475,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setMessages([{
           id: nextMsgId(),
           role: 'assistant',
-          content: 'Halo! Selamat datang di Agri-SAW Pro. 🌾\n\nSaya adalah asisten virtual yang akan membantu merekomendasikan komoditas pertanian terbaik untuk lahan Anda.\n\nSebelum mulai, silakan isi data diri dulu ya:',
+          content: 'Halo! Selamat datang di Agri-SAW Pro. 🌾\n\nSaya adalah asisten virtual yang akan membantu merekomendasikan komoditas pertanian terbaik untuk lahan Bapak/Ibu.\n\nSebelum mulai, silakan isi data diri dulu ya:',
         }]);
         setUserName('');
         setUserGender('laki');
@@ -498,19 +499,29 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       callCollectingAPI(`[skip:${paramName}]`);
       return;
     }
-
-
-
+    if (value === '__ESCAPE_KURANG_YAKIN__') {
+      const paramName = currentMissingParams[0] || 'parameter ini';
+      setEscapeKurangYakinActive(true);
+      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'user', content: `Saya kurang yakin soal ${paramName}, tapi saya coba jawab.` }]);
+      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: `Tidak masalah, ${sapaan(userGender)} ${userName}. Silakan ketik perkiraan ${paramName} ${sapaan(userGender)}. Misalnya "sekitar 300 meter" atau "dataran rendah". Perkiraan kasar sudah cukup.` }]);
+      return;
+    }
     // Normal reply
     setMessages((prev) => [...prev, { id: nextMsgId(), role: 'user', content: value }]);
     callCollectingAPI(value);
   };
 
   // ════════════════════════════════════════════════════════════════════
-  // TEXT INPUT (Disabled, keeping handler just in case)
+  // TEXT INPUT (Enabled when escapeKurangYakinActive)
   // ════════════════════════════════════════════════════════════════════
   const handleTextSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
+    const text = inputValue.trim();
+    setInputValue('');
+    setEscapeKurangYakinActive(false);
+    setMessages((prev) => [...prev, { id: nextMsgId(), role: 'user', content: text }]);
+    callCollectingAPI(text);
   };
 
   // ════════════════════════════════════════════════════════════════════
@@ -602,12 +613,13 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setSurvivingCrops(surviving);
         setEliminatedCrops(apiData.eliminated || []);
       }
-      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: apiData.message }]);
+      // Strip bold markdown from API message for clean display
+      const cleanMessage = apiData.message ? apiData.message.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*/g, '') : '';
+      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: cleanMessage }]);
       setPhase('done');
     } catch (error) {
       const sal = sapaan(userGender);
       setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: 'Maaf, ' + sal + ' ' + userName + ', ada kendala teknis. Silakan coba lagi nanti, atau hubungi penyuluh pertanian setempat untuk konsultasi langsung.' }]);
-      setPhase('done');
     } finally {
       setIsLoading(false);
       setShowLoadingScreen(false);
@@ -629,6 +641,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ════════════════════════════════════════════════════════════════════
   const handleUlangiFromRingkasan = () => {
     setCollectedParams(null);
+    setPreviousParams(undefined);
     setEliminatedCrops([]);
     setOutOfRangeParams([]);
     setSurvivingCrops([]);
@@ -640,12 +653,13 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setShowPreferences(false);
     setReturningToRingkasan(false);
     setCurrentMissingParams([]);
+    setEscapeKurangYakinActive(false);
     // Go back to ringkasan (Phase 2)
     setPhase('ringkasan');
     setMessages((prev) => [
       ...prev,
       { id: nextMsgId(), role: 'user', content: 'Ulangi konsultasi' },
-      { id: nextMsgId(), role: 'assistant', content: `Baik, ${sapaan(userGender)} ${userName}. Kita ulang dari awal ya, Pak. Silakan isi ulang data lahan Bapak.` },
+      { id: nextMsgId(), role: 'assistant', content: `Baik, ${sapaan(userGender)} ${userName}. Kita ulang dari awal ya. Silakan isi ulang data lahan ${sapaan(userGender)}.` },
     ]);
   };
 
@@ -797,7 +811,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
 
     return (
       <div className="pl-8 space-y-2" role="group" aria-label="FAQ untuk parameter bermasalah">
-        <p className="text-xs text-white/50 font-medium mb-2">Pelajari cara memperbaiki kondisi lahan Anda:</p>
+        <p className="text-xs text-white/50 font-medium mb-2">Pelajari cara memperbaiki kondisi lahan Bapak/Ibu:</p>
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
           {outOfRangeParams.map((param) => {
             const mapping = PARAM_TO_FAQ[param];
@@ -826,31 +840,31 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ════════════════════════════════════════════════════════════════════
   // RENDER: Ringkasan quick replies (Phase 2)
   // ════════════════════════════════════════════════════════════════════
-const renderRingkasanQuickReplies = () => {
-  if (phase !== 'ringkasan' || faqView !== 'none' || returningToRingkasan) return null;
-  return (
-    <div className="pl-8 space-y-2" role="group" aria-label="Opsi ringkasan">
-      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-        <button
-          onClick={() => handleQuickReply('__RINGKASAN_LANJUT__')}
-          onKeyDown={(e) => handleQuickReplyKeyDown(e, '__RINGKASAN_LANJUT__')}
-          tabIndex={0}
-          className="text-xs px-3 py-2.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-all cursor-pointer min-h-[44px]"
-        >
-          Mengerti, lanjut konsultasi
-        </button>
-        <button
-          onClick={() => handleQuickReply('__RINGKASAN_FAQ__')}
-          onKeyDown={(e) => handleQuickReplyKeyDown(e, '__RINGKASAN_FAQ__')}
-          tabIndex={0}
-          className="text-xs px-3 py-2.5 rounded-full border border-blue-400/30 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20 transition-all cursor-pointer min-h-[44px]"
-        >
-          Ada pertanyaan dulu
-        </button>
+  const renderRingkasanQuickReplies = () => {
+    if (phase !== 'ringkasan' || faqView !== 'none' || returningToRingkasan) return null;
+    return (
+      <div className="pl-8 space-y-2" role="group" aria-label="Opsi ringkasan">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+          <button
+            onClick={() => handleQuickReply('__RINGKASAN_LANJUT__')}
+            onKeyDown={(e) => handleQuickReplyKeyDown(e, '__RINGKASAN_LANJUT__')}
+            tabIndex={0}
+            className="text-xs px-3 py-2.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-all cursor-pointer min-h-[44px]"
+          >
+            Mengerti, lanjut konsultasi
+          </button>
+          <button
+            onClick={() => handleQuickReply('__RINGKASAN_FAQ__')}
+            onKeyDown={(e) => handleQuickReplyKeyDown(e, '__RINGKASAN_FAQ__')}
+            tabIndex={0}
+            className="text-xs px-3 py-2.5 rounded-full border border-blue-400/30 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20 transition-all cursor-pointer min-h-[44px]"
+          >
+            Ada pertanyaan dulu
+          </button>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   // ════════════════════════════════════════════════════════════════════
   // RENDER: Returning to ringkasan after FAQ
@@ -1132,22 +1146,12 @@ const renderRingkasanQuickReplies = () => {
   };
 
   // ════════════════════════════════════════════════════════════════════
-  // RENDER: Input hint text
-  // ════════════════════════════════════════════════════════════════════
-  const getInputHint = (): string => {
-    if (phase === 'welcome') return 'Silakan isi form di atas';
-    if (phase === 'ringkasan') return 'Pilih opsi di atas';
-    if (phase === 'collecting') return 'Pilih jawaban di atas';
-    if (phase === 'confirming') return 'Klik tombol di atas';
-    if (phase === 'preference') return 'Pilih preferensi di atas';
-    if (phase === 'detail') return 'Pilih opsi di atas';
-    if (phase === 'done') return 'Pilih opsi di atas';
-    return '';
-  };
-
-  // ════════════════════════════════════════════════════════════════════
   // MAIN RENDER
   // ════════════════════════════════════════════════════════════════════
+
+  const renderMessageContent = (content: string) => {
+    return content.replace(/\*\*/g, '');
+  };
   const chatContent = (
     <>
       {/* ── Header ─────────────────────────────────────────────── */}
@@ -1207,7 +1211,7 @@ const renderRingkasanQuickReplies = () => {
               </div>
             )}
             <div className={`rounded-2xl rounded-tl-sm p-2.5 border shadow-lg ${msg.role === 'assistant' ? 'bg-white/10 backdrop-blur-md border-white/10' : 'bg-emerald-400/10 backdrop-blur-md border-emerald-400/30'}`}>
-              <p className={`whitespace-pre-line text-sm leading-relaxed ${msg.role === 'assistant' ? 'text-slate-200' : 'text-emerald-50'}`}>{msg.content}</p>
+              <p className={`whitespace-pre-line text-sm leading-relaxed ${msg.role === 'assistant' ? 'text-slate-200' : 'text-emerald-50'}`}>{renderMessageContent(msg.content)}</p>
             </div>
           </div>
         ))}
@@ -1367,15 +1371,11 @@ const renderRingkasanQuickReplies = () => {
 
       {/* ── Input area ────────────────────────────────────────── */}
       <div className="p-2.5 border-t border-white/10 bg-black/60 shrink-0">
-        {isInputDisabled ? (
-          <div className="text-center py-2">
-            <span className="text-xs text-white/30">{getInputHint()}</span>
-          </div>
-        ) : (
+        {!isInputDisabled && (
           <form onSubmit={handleTextSubmit} className="relative flex items-center mb-1">
             <input
               className="w-full bg-[#0b0f10] border border-white/10 rounded-full py-2.5 pl-4 pr-12 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-400/50 transition-all"
-              placeholder="Ketik pesan..."
+              placeholder="Ketik perkiraan Anda di sini..."
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
