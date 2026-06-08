@@ -74,6 +74,128 @@ export interface Filter1Output {
   surviving: Filter1Result[];
   eliminated: Filter1Result[];
   allEliminated: boolean;
+  darkHorse: DarkHorseResult[];
+  scoringDetails: ScoringDetail[];
+}
+// =============================================================================
+// PROXIMITY SCORING — Soft Fallback for Filter 1
+// =============================================================================
+
+export const DARK_HORSE_THRESHOLD = 0.4;
+
+export const PROXIMITY_WEIGHTS: Record<string, number> = {
+  pH: 0.25,
+  rainfall: 0.25,
+  elevation: 0.2,
+  light: 0.15,
+  texture: 0.15,
+};
+
+export interface DarkHorseResult {
+  cropId: string;
+  cropName: string;
+  totalProximity: number;
+  perParamScores: Record<string, number>;
+  failReasons: string[];
+  advice: string;
+}
+
+export interface ScoringDetail {
+  cropId: string;
+  cropName: string;
+  isSurvivor: boolean;
+  isDarkHorse: boolean;
+  totalProximity: number;
+  perParamScores: Record<string, number>;
+}
+
+export function computeProximityScore(
+  userValues: ParsedUserInput,
+  crop: CropProfile,
+  weights: Record<string, number>
+): { totalScore: number; perParamScores: Record<string, number>; failReasons: string[] } {
+  const scores: Record<string, number> = {};
+  const agri = crop.agroklimat;
+  const failReasons: string[] = [];
+
+  // pH proximity
+  if (userValues.pH !== null) {
+    const rangeWidth = agri.phMax - agri.phMin;
+    const midpoint = (agri.phMin + agri.phMax) / 2;
+    const halfWidth = rangeWidth / 2;
+    const distance = Math.abs(userValues.pH - midpoint);
+    scores.pH = Math.max(0, 1 - distance / (halfWidth + 0.5));
+    if (userValues.pH < agri.phMin || userValues.pH > agri.phMax) {
+      failReasons.push(`pH ${userValues.pH} di luar range optimal (${agri.phMin}–${agri.phMax})`);
+    }
+  } else {
+    scores.pH = 1.0;
+  }
+
+  // Rainfall proximity
+  if (userValues.rainfall !== null) {
+    const rangeWidth = agri.rainfallMax - agri.rainfallMin;
+    const midpoint = (agri.rainfallMin + agri.rainfallMax) / 2;
+    const halfWidth = rangeWidth / 2;
+    const distance = Math.abs(userValues.rainfall - midpoint);
+    scores.rainfall = Math.max(0, 1 - distance / (halfWidth + 100));
+    if (userValues.rainfall < agri.rainfallMin || userValues.rainfall > agri.rainfallMax) {
+      failReasons.push(`curah hujan ${userValues.rainfall}mm di luar range (${agri.rainfallMin}–${agri.rainfallMax}mm)`);
+    }
+  } else {
+    scores.rainfall = 1.0;
+  }
+
+  // Elevation proximity
+  if (userValues.elevation !== null) {
+    const rangeWidth = agri.elevationMax - agri.elevationMin;
+    const midpoint = (agri.elevationMin + agri.elevationMax) / 2;
+    const halfWidth = rangeWidth / 2;
+    const distance = Math.abs(userValues.elevation - midpoint);
+    scores.elevation = Math.max(0, 1 - distance / (halfWidth + 50));
+    if (userValues.elevation < agri.elevationMin || userValues.elevation > agri.elevationMax) {
+      failReasons.push(`ketinggian ${userValues.elevation}mdpl di luar range (${agri.elevationMin}–${agri.elevationMax}mdpl)`);
+    }
+  } else {
+    scores.elevation = 1.0;
+  }
+
+  // Light proximity
+  if (userValues.light !== null) {
+    const rangeWidth = agri.lightMax - agri.lightMin;
+    const midpoint = (agri.lightMin + agri.lightMax) / 2;
+    const halfWidth = rangeWidth / 2;
+    const distance = Math.abs(userValues.light - midpoint);
+    scores.light = Math.max(0, 1 - distance / (halfWidth + 1));
+    if (userValues.light < agri.lightMin) {
+      failReasons.push(`cahaya ${userValues.light}jam di bawah minimum (${agri.lightMin}jam)`);
+    }
+  } else {
+    scores.light = 1.0;
+  }
+
+  // Texture (binary with fuzzy override)
+  if (userValues.texture !== null) {
+    if (textureMatches(userValues.texture, agri.textures)) {
+      scores.texture = 1.0;
+    } else {
+      scores.texture = 0.3;
+      failReasons.push(`tekstur "${userValues.texture}" tidak ideal (butuh: ${agri.textures.join(', ')})`);
+    }
+  } else {
+    scores.texture = 1.0;
+  }
+
+  // Weighted total
+  const totalScore = (
+    (weights.pH || 0.25) * scores.pH +
+    (weights.rainfall || 0.25) * scores.rainfall +
+    (weights.elevation || 0.2) * scores.elevation +
+    (weights.light || 0.15) * scores.light +
+    (weights.texture || 0.15) * scores.texture
+  );
+
+  return { totalScore, perParamScores: scores, failReasons };
 }
 
 export interface FullRecommendationResult {
@@ -690,8 +812,94 @@ export function filterByAgroklimat(parsed: ParsedUserInput, rawInput?: string): 
   const surviving = results.filter((r) => !r.eliminated);
   const allEliminated = surviving.length === 0;
 
-  return { results, surviving, eliminated: eliminatedCrops, allEliminated };
+  // Dark horse: compute proximity scores for eliminated crops
+  const darkHorseCandidates: DarkHorseResult[] = [];
+  const scoringDetails: ScoringDetail[] = [];
+
+  for (const crop of crops) {
+    const proximity = computeProximityScore(parsed, crop, PROXIMITY_WEIGHTS);
+    const result = results.find((r) => r.cropId === crop.id);
+    const isSurvivor = result ? !result.eliminated : false;
+
+    scoringDetails.push({
+      cropId: crop.id,
+      cropName: crop.name,
+      isSurvivor,
+      isDarkHorse: false,
+      totalProximity: proximity.totalScore,
+      perParamScores: proximity.perParamScores,
+    });
+  }
+
+  for (const eliminated of eliminatedCrops) {
+    const crop = cropProfiles[eliminated.cropId];
+    if (!crop) continue;
+
+    const proximity = computeProximityScore(parsed, crop, PROXIMITY_WEIGHTS);
+
+    if (proximity.totalScore >= DARK_HORSE_THRESHOLD) {
+      const advice = generateAdvice(proximity.failReasons);
+
+      const dhResult: DarkHorseResult = {
+        cropId: eliminated.cropId,
+        cropName: eliminated.cropName,
+        totalProximity: proximity.totalScore,
+        perParamScores: proximity.perParamScores,
+        failReasons: proximity.failReasons,
+        advice,
+      };
+      darkHorseCandidates.push(dhResult);
+
+      // Mark as dark horse in scoring details
+      const detail = scoringDetails.find((d) => d.cropId === eliminated.cropId);
+      if (detail) detail.isDarkHorse = true;
+    }
+  }
+
+  // Sort by totalProximity descending, take top 3
+  darkHorseCandidates.sort((a, b) => b.totalProximity - a.totalProximity);
+  const darkHorse = darkHorseCandidates.slice(0, 3);
+
+  return { results, surviving, eliminated: eliminatedCrops, allEliminated, darkHorse, scoringDetails };
 }
+
+function generateAdvice(failReasons: string[]): string {
+  const advices: string[] = [];
+
+  for (const reason of failReasons) {
+    const lower = reason.toLowerCase();
+    if (lower.includes('ph') && lower.includes('di luar')) {
+      // Determine if too low or too high from the context
+      if (lower.includes('rendah') || lower.match(/ph\s+(\d+\.?\d*)\s/)) {
+        const phMatch = reason.match(/ph\s+(\d+\.?\d*)/i);
+        if (phMatch) {
+          const phVal = parseFloat(phMatch[1]);
+          if (phVal < 5.5) {
+            advices.push('Pertimbangkan pengapuran untuk menaikkan pH tanah');
+          } else {
+            advices.push('Pertimbangkan pemberian belerang atau bahan organik untuk menurunkan pH');
+          }
+        } else {
+          advices.push('Pertimbangkan pengapuran untuk menaikkan pH tanah');
+        }
+      }
+    } else if (lower.includes('curah hujan')) {
+      if (lower.includes('rendah')) {
+        advices.push('Pertimbangkan sistem irigasi tambahan untuk mencukupi kebutuhan air');
+      } else if (lower.includes('tinggi')) {
+        advices.push('Perbaiki sistem drainase untuk menghindari genangan');
+      }
+    } else if (lower.includes('ketinggian')) {
+      advices.push('Pastikan varietas yang ditanam sesuai dengan ketinggian lahan');
+    } else if (lower.includes('cahaya')) {
+      advices.push('Pertimbangkan pembersihan area dari pohon/penghalang untuk menambah paparan sinar matahari');
+    } else if (lower.includes('tekstur')) {
+      advices.push('Perbaiki tekstur tanah dengan penambahan kompos atau pasir sesuai kebutuhan');
+    }
+  }
+
+  return advices.length > 0 ? advices.join('. ') : 'Kondisi lahan perlu perbaikan sebelum menanam komoditas ini';
+ }
 
 // =============================================================================
 // FILTER 2 — SAW Economic Ranking

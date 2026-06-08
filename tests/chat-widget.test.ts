@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseUserInput, detectMissingParams } from '@/lib/knowledge-base';
+import { parseUserInput, detectMissingParams, computeProximityScore, PROXIMITY_WEIGHTS, DARK_HORSE_THRESHOLD, cropProfiles, filterByAgroklimat } from '@/lib/knowledge-base';
 
 // ─── Inline the PARAM_ORDER canonical list ───────────────────────────────────
 const PARAM_ORDER = ['ketinggian', 'curah hujan', 'pH tanah', 'tekstur tanah', 'intensitas cahaya'];
@@ -549,5 +549,289 @@ describe('Task 8 — Unit Tests (run after fix)', () => {
         expect(crop.reasons[0]).toContain('ketinggian');
       }
     });
+  });
+});
+// =============================================================================
+// TASK 9: PROXIMITY SCORE UNIT TESTS
+// =============================================================================
+describe('Task 9 — Proximity Score Unit Tests', () => {
+  // ── Test 1: Perfect match = score 1.0 ──────────────────────────────────
+  it('perfect match returns totalScore 1.0', () => {
+    const userValues = {
+      pH: 6.0,        // midpoint of rice pH 5.5–6.5
+      texture: 'liat', // in rice textures
+      elevation: 325,  // midpoint of rice elevation 0–650
+      light: 9,        // midpoint of rice light 8–10
+      rainfall: 1750,  // midpoint of rice rainfall 1500–2000
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    const result = computeProximityScore(userValues, cropProfiles.rice, PROXIMITY_WEIGHTS);
+    expect(result.totalScore).toBe(1.0);
+    expect(result.perParamScores.pH).toBe(1.0);
+    expect(result.perParamScores.rainfall).toBe(1.0);
+    expect(result.perParamScores.elevation).toBe(1.0);
+    expect(result.perParamScores.light).toBe(1.0);
+    expect(result.perParamScores.texture).toBe(1.0);
+    expect(result.failReasons).toHaveLength(0);
+  });
+  // ── Test 2: Far outside range = score near 0 ───────────────────────────
+  it('far outside range returns score near 0', () => {
+    const userValues = {
+      pH: 2.0,          // extremely acidic, far below rice range
+      texture: 'berpasir', // not in rice textures
+      elevation: 5000,  // far above rice max 650
+      light: 1,         // far below rice min 8
+      rainfall: 100,    // far below rice min 1500
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    const result = computeProximityScore(userValues, cropProfiles.rice, PROXIMITY_WEIGHTS);
+    expect(result.totalScore).toBeLessThan(0.1);
+    expect(result.perParamScores.pH).toBe(0);
+    expect(result.perParamScores.rainfall).toBe(0);
+    expect(result.perParamScores.elevation).toBe(0);
+    expect(result.perParamScores.light).toBe(0);
+    expect(result.perParamScores.texture).toBe(0.3);
+    expect(result.failReasons.length).toBeGreaterThan(0);
+  });
+  // ── Test 3: Edge case — exactly at range boundary ─────────────────────
+  it('exactly at range boundary returns partial score', () => {
+    const userValues = {
+      pH: 5.5,          // exactly at rice phMin
+      texture: 'liat',
+      elevation: 325,
+      light: 9,
+      rainfall: 1750,
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    const result = computeProximityScore(userValues, cropProfiles.rice, PROXIMITY_WEIGHTS);
+    // pH: midpoint=6.0, distance=0.5, halfWidth=0.5, score = 1 - 0.5/(0.5+0.5) = 0.5
+    expect(result.perParamScores.pH).toBeCloseTo(0.5, 2);
+    // Others are perfect
+    expect(result.perParamScores.rainfall).toBe(1.0);
+    expect(result.perParamScores.elevation).toBe(1.0);
+    expect(result.perParamScores.light).toBe(1.0);
+    expect(result.perParamScores.texture).toBe(1.0);
+    // total = 0.25*0.5 + 0.25*1 + 0.2*1 + 0.15*1 + 0.15*1 = 0.875
+    expect(result.totalScore).toBeCloseTo(0.875, 3);
+  });
+  // ── Test 4: Partial match — slightly outside range ────────────────────
+  it('slightly outside range returns partial score', () => {
+    const userValues = {
+      pH: 5.2,          // 0.3 below rice phMin of 5.5
+      texture: 'liat',
+      elevation: 325,
+      light: 9,
+      rainfall: 1750,
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    const result = computeProximityScore(userValues, cropProfiles.rice, PROXIMITY_WEIGHTS);
+    // pH: midpoint=6.0, distance=0.8, halfWidth=0.5, score = 1 - 0.8/(0.5+0.5) = 0.2
+    expect(result.perParamScores.pH).toBeCloseTo(0.2, 2);
+    expect(result.perParamScores.rainfall).toBe(1.0);
+    expect(result.perParamScores.elevation).toBe(1.0);
+    expect(result.perParamScores.light).toBe(1.0);
+    expect(result.perParamScores.texture).toBe(1.0);
+    // total = 0.25*0.2 + 0.25*1 + 0.2*1 + 0.15*1 + 0.15*1 = 0.8
+    expect(result.totalScore).toBeCloseTo(0.8, 3);
+    // pH is outside range so should have a fail reason
+    expect(result.failReasons.some((r: string) => r.includes('pH'))).toBe(true);
+  });
+  // ── Test 5: Texture mismatch = 0.3 ────────────────────────────────────
+  it('texture mismatch gives score 0.3', () => {
+    const userValues = {
+      pH: 6.0,
+      texture: 'berpasir', // not in rice textures
+      elevation: 325,
+      light: 9,
+      rainfall: 1750,
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    const result = computeProximityScore(userValues, cropProfiles.rice, PROXIMITY_WEIGHTS);
+    expect(result.perParamScores.texture).toBe(0.3);
+    // total = 0.25*1 + 0.25*1 + 0.2*1 + 0.15*1 + 0.15*0.3 = 0.895
+    expect(result.totalScore).toBeCloseTo(0.895, 3);
+    expect(result.failReasons.some((r: string) => r.includes('tekstur'))).toBe(true);
+  });
+  // ── Test 6: No user input (null) = score 1.0 for that param ───────────
+  it('null user input defaults to score 1.0 for that parameter', () => {
+    const userValues = {
+      pH: null,
+      texture: null,
+      elevation: null,
+      light: null,
+      rainfall: null,
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    const result = computeProximityScore(userValues, cropProfiles.rice, PROXIMITY_WEIGHTS);
+    expect(result.perParamScores.pH).toBe(1.0);
+    expect(result.perParamScores.rainfall).toBe(1.0);
+    expect(result.perParamScores.elevation).toBe(1.0);
+    expect(result.perParamScores.light).toBe(1.0);
+    expect(result.perParamScores.texture).toBe(1.0);
+    expect(result.totalScore).toBe(1.0);
+    expect(result.failReasons).toHaveLength(0);
+  });
+  // ── Test 7: Weighted total calculation is correct ─────────────────────
+  it('weighted total matches manual calculation', () => {
+    // Use garlic: pH 6.0–7.0, elevation 700–1100, light 12–999, rainfall 550–1000
+    const userValues = {
+      pH: 6.0,          // at garlic phMin
+      texture: 'lempung', // in garlic textures
+      elevation: 700,   // at garlic elevationMin
+      light: 12,        // at garlic lightMin
+      rainfall: 550,    // at garlic rainfallMin
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    const result = computeProximityScore(userValues, cropProfiles.garlic, PROXIMITY_WEIGHTS);
+    // Manual calculation for garlic:
+    // pH: midpoint=6.5, distance=0.5, halfWidth=0.5, score = 1 - 0.5/(0.5+0.5) = 0.5
+    const expectedPH = Math.max(0, 1 - Math.abs(6.0 - 6.5) / (0.5 + 0.5));
+    // elevation: midpoint=900, distance=200, halfWidth=200, score = 1 - 200/(200+50) = 1 - 0.8 = 0.2
+    const expectedElevation = Math.max(0, 1 - Math.abs(700 - 900) / (200 + 50));
+    // light: midpoint=(12+999)/2=505.5, distance=493.5, halfWidth=493.5, score = 1 - 493.5/(493.5+1) ≈ 0.002
+    const lightHalfWidth = (999 - 12) / 2;
+    const expectedLight = Math.max(0, 1 - Math.abs(12 - (12 + 999) / 2) / (lightHalfWidth + 1));
+    // rainfall: midpoint=775, distance=225, halfWidth=225, score = 1 - 225/(225+100) = 1 - 0.6923 ≈ 0.3077
+    const expectedRainfall = Math.max(0, 1 - Math.abs(550 - 775) / (225 + 100));
+    // texture: 'lempung' in garlic textures → 1.0
+    const expectedTexture = 1.0;
+    const expectedTotal =
+      0.25 * expectedPH +
+      0.25 * expectedRainfall +
+      0.2 * expectedElevation +
+      0.15 * expectedLight +
+      0.15 * expectedTexture;
+    expect(result.perParamScores.pH).toBeCloseTo(expectedPH, 2);
+    expect(result.perParamScores.elevation).toBeCloseTo(expectedElevation, 2);
+    expect(result.perParamScores.light).toBeCloseTo(expectedLight, 2);
+    expect(result.perParamScores.rainfall).toBeCloseTo(expectedRainfall, 2);
+    expect(result.perParamScores.texture).toBe(expectedTexture);
+    expect(result.totalScore).toBeCloseTo(expectedTotal, 3);
+  });
+  // ── Test 8: Dark horse threshold filtering (>= 0.4) ───────────────────
+  it('crops with proximity >= DARK_HORSE_THRESHOLD qualify as dark horses', () => {
+    // Rice with perfect match: score 1.0 >= 0.4 → dark horse
+    const perfectInput = {
+      pH: 6.0, texture: 'liat', elevation: 325, light: 9, rainfall: 1750,
+      budget: null, landArea: null, rawKeywords: [],
+    };
+    const perfectResult = computeProximityScore(perfectInput, cropProfiles.rice, PROXIMITY_WEIGHTS);
+    expect(perfectResult.totalScore).toBeGreaterThanOrEqual(DARK_HORSE_THRESHOLD);
+    // Rice with terrible match: score near 0 < 0.4 → not dark horse
+    const terribleInput = {
+      pH: 2.0, texture: 'berpasir', elevation: 5000, light: 1, rainfall: 100,
+      budget: null, landArea: null, rawKeywords: [],
+    };
+    const terribleResult = computeProximityScore(terribleInput, cropProfiles.rice, PROXIMITY_WEIGHTS);
+    expect(terribleResult.totalScore).toBeLessThan(DARK_HORSE_THRESHOLD);
+  });
+  // ── Test 9: All eliminated crops get proximity scores ──────────────────
+  it('filterByAgroklimat computes proximity scores for eliminated crops', () => {
+    const parsed = {
+      pH: 4.0,           // too acidic for all crops
+      texture: 'pasir',  // only matches some
+      elevation: 500,
+      light: 9,
+      rainfall: 900,
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    const filter1 = filterByAgroklimat(parsed);
+    // Some crops should be eliminated
+    expect(filter1.eliminated.length).toBeGreaterThan(0);
+    // Each eliminated crop should have a proximity score computed
+    for (const elim of filter1.eliminated) {
+      const proximity = computeProximityScore(parsed, cropProfiles[elim.cropId], PROXIMITY_WEIGHTS);
+      expect(proximity.totalScore).toBeGreaterThanOrEqual(0);
+      expect(proximity.totalScore).toBeLessThanOrEqual(1);
+      expect(Object.keys(proximity.perParamScores)).toHaveLength(5);
+    }
+  });
+  // ── Test 10: Dark horse sorted by proximity descending ─────────────────
+  it('dark horses are sorted by proximity score descending', () => {
+    // Use input that eliminates some crops but leaves others as dark horses
+    const parsed = {
+      pH: 5.0,           // below rice phMin 5.5, but within corn range
+      texture: 'lempung',
+      elevation: 400,
+      light: 9,
+      rainfall: 1200,
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    // Compute proximity for all crops
+    const allScores = Object.values(cropProfiles).map((crop: any) => ({
+      cropId: crop.id,
+      cropName: crop.name,
+      ...computeProximityScore(parsed, crop, PROXIMITY_WEIGHTS),
+    }));
+    // Filter dark horses (>= threshold)
+    const darkHorses = allScores
+      .filter((s: any) => s.totalScore >= DARK_HORSE_THRESHOLD)
+      .sort((a: any, b: any) => b.totalScore - a.totalScore);
+    // Verify sorted descending
+    for (let i = 1; i < darkHorses.length; i++) {
+      expect(darkHorses[i - 1].totalScore).toBeGreaterThanOrEqual(darkHorses[i].totalScore);
+    }
+    // All dark horses should meet threshold
+    for (const dh of darkHorses) {
+      expect(dh.totalScore).toBeGreaterThanOrEqual(DARK_HORSE_THRESHOLD);
+    }
+  });
+  // ── Test 11: PROXIMITY_WEIGHTS sums to 1.0 ────────────────────────────
+  it('PROXIMITY_WEIGHTS sum to 1.0', () => {
+    const sum = Object.values(PROXIMITY_WEIGHTS).reduce((a: number, b: number) => a + b, 0);
+    expect(sum).toBeCloseTo(1.0, 5);
+  });
+  // ── Test 12: DARK_HORSE_THRESHOLD is 0.4 ──────────────────────────────
+  it('DARK_HORSE_THRESHOLD equals 0.4', () => {
+    expect(DARK_HORSE_THRESHOLD).toBe(0.4);
+  });
+  // ── Test 13: Score is always between 0 and 1 ──────────────────────────
+  it('proximity score is always in [0, 1] for any input', () => {
+    const testInputs = [
+      { pH: 0, texture: 'liat', elevation: 0, light: 0, rainfall: 0, budget: null, landArea: null, rawKeywords: [] },
+      { pH: 14, texture: 'pasir', elevation: 2000, light: 24, rainfall: 5000, budget: null, landArea: null, rawKeywords: [] },
+      { pH: 7, texture: 'lempung', elevation: 500, light: 10, rainfall: 1000, budget: null, landArea: null, rawKeywords: [] },
+    ];
+    for (const input of testInputs) {
+      for (const crop of Object.values(cropProfiles)) {
+        const result = computeProximityScore(input, crop as any, PROXIMITY_WEIGHTS);
+        expect(result.totalScore).toBeGreaterThanOrEqual(0);
+        expect(result.totalScore).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+  // ── Test 14: Texture match = 1.0 for matching texture ──────────────────
+  it('matching texture gives score 1.0', () => {
+    // Corn accepts 'lempung berpasir'
+    const userValues = {
+      pH: 6.5,
+      texture: 'berpasir',
+      elevation: 450,
+      light: 9,
+      rainfall: 1700,
+      budget: null,
+      landArea: null,
+      rawKeywords: [],
+    };
+    const result = computeProximityScore(userValues, cropProfiles.corn, PROXIMITY_WEIGHTS);
+    expect(result.perParamScores.texture).toBe(1.0);
   });
 });

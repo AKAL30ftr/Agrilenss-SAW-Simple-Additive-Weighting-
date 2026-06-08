@@ -137,6 +137,12 @@ export async function POST(request: NextRequest) {
           followUpQuestion: null,
           userValues: parsed,
           retrievedContext: [],
+          darkHorse: filter1.darkHorse.map((dh) => ({
+            cropName: dh.cropName,
+            totalProximity: dh.totalProximity,
+            failReasons: dh.failReasons,
+            advice: dh.advice,
+          })),
         })
       );
     }
@@ -258,6 +264,12 @@ export async function POST(request: NextRequest) {
           score: r.preferenceScore.toFixed(3),
           normalizedValues: r.normalizedValues,
           explanation: r.explanation,
+        })),
+        darkHorse: filter1.darkHorse.map((dh) => ({
+          cropName: dh.cropName,
+          totalProximity: dh.totalProximity,
+          failReasons: dh.failReasons,
+          advice: dh.advice,
         })),
         missingParams,
         followUpQuestion,

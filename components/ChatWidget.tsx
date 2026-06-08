@@ -25,12 +25,11 @@ import ConfirmingCard from '@/components/chat/ConfirmingCard';
 import DetailCard from '@/components/chat/DetailCard';
 import CollectingView from '@/components/chat/CollectingView';
 import PreferenceView from '@/components/chat/PreferenceView';
-import EliminationSummary from '@/components/chat/EliminationSummary';
-import ResultQuickReplies from '@/components/chat/ResultQuickReplies';
 import DetailQuickReplies from '@/components/chat/DetailQuickReplies';
 import ClosingQuickReplies from '@/components/chat/ClosingQuickReplies';
 import FaqViewComponent from '@/components/chat/FaqView';
 import EliminatedFaqLinks from '@/components/chat/EliminatedFaqLinks';
+import DoneView from '@/components/chat/DoneView';
 
 // =====================================================================
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────
@@ -70,6 +69,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [outOfRangeParams, setOutOfRangeParams] = useState<string[]>([]);
   const [survivingCrops, setSurvivingCrops] = useState<Array<{ name: string; score: string; normalizedValues?: Record<string, number>; explanation?: string }>>([]);
   const [selectedCropDetail, setSelectedCropDetail] = useState<{ name: string; score: string; normalizedValues?: Record<string, number>; explanation?: string } | null>(null);
+  const [darkHorse, setDarkHorse] = useState<Array<{ cropName: string; totalProximity: number; failReasons: string[]; advice: string }>>([]);
 
   // FAQ state
   const [faqView, setFaqView] = useState<FaqView>('none');
@@ -463,6 +463,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         const surviving = apiData.surviving;
         setSurvivingCrops(surviving);
         setEliminatedCrops(apiData.eliminated || []);
+        setDarkHorse(apiData.darkHorse || []);
       }
       const cleanMessage = apiData.message ? apiData.message.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*/g, '') : '';
       setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: cleanMessage }]);
@@ -496,6 +497,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setOutOfRangeParams([]);
     setSurvivingCrops([]);
     setSelectedCropDetail(null);
+    setDarkHorse([]);
     setFaqView('none');
     setFaqSelectedSection(null);
     setFaqSelectedItem(null);
@@ -749,20 +751,14 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
           />
         )}
 
-        {/* ── Phase 6: Elimination summary (Bug 2 fix) ─────────── */}
-        {phase === 'done' && survivingCrops.length > 0 && eliminatedCrops.length > 0 && (
-          <EliminationSummary
-            eliminatedCrops={eliminatedCrops}
-            userGender={userGender}
-          />
-        )}
-
-        {/* ── Phase 6: Result quick replies ────────────────────── */}
-        {phase === 'done' && !isLoading && survivingCrops.length > 0 && (
-          <ResultQuickReplies
+        {/* ── Phase 6: Done view (recommendation + dark horse + eliminated + quick replies) ── */}
+        {phase === 'done' && survivingCrops.length > 0 && (
+          <DoneView
             survivingCrops={survivingCrops}
+            eliminatedCrops={eliminatedCrops}
+            darkHorse={darkHorse}
+            selectedCropDetail={selectedCropDetail}
             onReply={handleQuickReply}
-            onKeyDown={handleQuickReplyKeyDown}
           />
         )}
 
