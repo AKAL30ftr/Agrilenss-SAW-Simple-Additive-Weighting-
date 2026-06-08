@@ -324,19 +324,18 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const advanceCollecting = useCallback((data: { userValues?: Record<string, unknown>; missingParams?: string[]; message: string }) => {
     if (data.userValues) {
       setPreviousParams(data.userValues);
+      // Keep English keys for API compatibility, convert to Indonesian for display
+      const idParams: Record<string, unknown> = {};
+      const keyMap: Record<string, string> = { elevation: 'ketinggian', rainfall: 'curah hujan', pH: 'pH tanah', texture: 'tekstur tanah', light: 'intensitas cahaya' };
+      for (const [eng, id] of Object.entries(keyMap)) {
+        if (data.userValues[eng] != null) idParams[id] = data.userValues[eng];
+      }
+      setCollectedParams(idParams);
     }
     const remaining = data.missingParams || [];
     setCurrentMissingParams(remaining);
     if (remaining.length === 0) {
       // All params collected → go to confirmation
-      const idParams: Record<string, unknown> = {};
-      if (data.userValues) {
-        const keyMap: Record<string, string> = { elevation: 'ketinggian', rainfall: 'curah hujan', pH: 'pH tanah', texture: 'tekstur tanah', light: 'intensitas cahaya' };
-        for (const [eng, id] of Object.entries(keyMap)) {
-          if (data.userValues[eng] != null) idParams[id] = data.userValues[eng];
-        }
-      }
-      setCollectedParams(idParams);
       setPhase('confirming');
     } else {
       // Ask next param — only push data.message (already contains the next question from API)
@@ -535,7 +534,13 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     const minDelay = new Promise<void>((resolve) => { resolveDelay = resolve; });
     setTimeout(() => resolveDelay!(), 3000);
     try {
-      const body: Record<string, unknown> = { message: 'Hitung rekomendasi', previousParams: params };
+      // Convert Indonesian keys back to English for API
+      const engParams: Record<string, unknown> = {};
+      const idToEng: Record<string, string> = { 'ketinggian': 'elevation', 'curah hujan': 'rainfall', 'pH tanah': 'pH', 'tekstur tanah': 'texture', 'intensitas cahaya': 'light' };
+      for (const [id, eng] of Object.entries(idToEng)) {
+        if (params[id] != null) engParams[eng] = params[id];
+      }
+      const body: Record<string, unknown> = { message: 'Hitung rekomendasi', previousParams: engParams };
       if (preferences && preferences.length > 0) body.preferences = preferences;
       const apiData = await fetch('/api/recommend', {
         method: 'POST',
@@ -558,18 +563,18 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         const sal = sapaan(userGender);
         // Build conversational summary per parameter
         const paramIssues: string[] = [];
-        if (oorParams.includes('ketinggian')) paramIssues.push('ketinggian lahan Bapak terlalu tinggi untuk semua komoditas');
+        if (oorParams.includes('ketinggian')) paramIssues.push('ketinggian lahan ' + sal + ' terlalu tinggi untuk semua komoditas');
         if (oorParams.includes('curah hujan')) paramIssues.push('curah hujan terlalu rendah untuk semua komoditas');
         if (oorParams.includes('pH tanah')) paramIssues.push('kondisi tanah kurang sesuai');
         if (oorParams.includes('tekstur tanah')) paramIssues.push('tekstur tanah kurang sesuai');
         if (oorParams.includes('intensitas cahaya')) paramIssues.push('intensitas cahaya kurang sesuai');
         const issueText = paramIssues.length > 0
           ? paramIssues.join('. ') + '.'
-          : 'kondisi lahan Bapak belum sesuai dengan kebutuhan tanaman yang tersedia.';
+          : 'kondisi lahan ' + sal + ' belum sesuai dengan kebutuhan tanaman yang tersedia.';
         const message = [
-          `Maaf, ${sal} ${userName}. Berdasarkan data yang Bapak masukkan, semua tanaman belum cocok karena ${issueText}`,
+          'Maaf, ' + sal + ' ' + userName + '. Berdasarkan data yang ' + sal + ' masukkan, semua tanaman belum cocok karena ' + issueText,
           '',
-          `Tapi jangan khawatir, ${sal}. Saya bisa bantu Bapak mempelajari cara memperbaiki kondisi lahan. Silakan pilih topik di bawah ini, ${sal}.`,
+          'Tapi jangan khawatir, ' + sal + '. Saya bisa bantu ' + sal + ' mempelajari cara memperbaiki kondisi lahan. Silakan pilih topik di bawah ini, ' + sal + '.',
         ].join('\n');
         setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: message }]);
         setPhase('done');
@@ -578,7 +583,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       // Filter 1 done, show preference selection
       if (!preferences && apiData.surviving && apiData.surviving.length > 0) {
         const surviving = apiData.surviving;
-        setCollectedParams(params);
         setSurvivingCrops(surviving);
         setEliminatedCrops(apiData.eliminated || []);
         setShowPreferences(true);
@@ -588,7 +592,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setMessages((prev) => [...prev, {
           id: nextMsgId(),
           role: 'assistant',
-          content: `Bagus, ${sal2} ${userName}! Dari 6 jenis tanaman, ada ${surviving.length} yang cocok dengan lahan ${sal2}: ${cropList}.\n\nSekarang, untuk menentukan ranking terbaik, saya perlu tahu prioritas ${sal2}. Mana yang lebih penting?\n\n• Biaya tanam yang murah?\n• Harga jual yang tinggi?\n• Hasil panen yang banyak?\n• Risiko yang rendah?\n• Permintaan pasar yang tinggi?\n\n${sal2} bisa pilih satu atau lebih.`,
+          content: 'Bagus, ' + sal2 + ' ' + userName + '! Dari 6 jenis tanaman, ada ' + surviving.length + ' yang cocok dengan lahan ' + sal2 + ': ' + cropList + '.\n\nSekarang, untuk menentukan ranking terbaik, saya perlu tahu prioritas ' + sal2 + '. Mana yang lebih penting?\n\n• Biaya tanam yang murah?\n• Harga jual yang tinggi?\n• Hasil panen yang banyak?\n• Risiko yang rendah?\n• Permintaan pasar yang tinggi?\n\n' + sal2 + ' bisa pilih satu atau lebih.',
         }]);
         return;
       }
@@ -602,11 +606,11 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       setPhase('done');
     } catch (error) {
       const sal = sapaan(userGender);
-      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: `Maaf, ${sal} ${userName}, ada kendala teknis. Silakan coba lagi nanti, atau hubungi penyuluh pertanian setempat untuk konsultasi langsung.` }]);
+      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: 'Maaf, ' + sal + ' ' + userName + ', ada kendala teknis. Silakan coba lagi nanti, atau hubungi penyuluh pertanian setempat untuk konsultasi langsung.' }]);
+      setPhase('done');
     } finally {
       setIsLoading(false);
       setShowLoadingScreen(false);
-      setCollectedParams(null);
     }
   };
 
