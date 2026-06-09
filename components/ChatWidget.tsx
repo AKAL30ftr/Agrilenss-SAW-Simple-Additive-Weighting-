@@ -205,7 +205,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-[#0b141a]">
-      <div className={`overflow-y-auto p-3 space-y-2 ${phase === 'welcome' ? 'flex-none' : 'flex-1'}`}>
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />}
