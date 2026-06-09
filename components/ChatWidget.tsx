@@ -20,7 +20,7 @@ import {
 } from '@/lib/chat/phases/collecting';
 
 export default function ChatWidget({ fullPage = false }: { fullPage?: boolean }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(fullPage);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
