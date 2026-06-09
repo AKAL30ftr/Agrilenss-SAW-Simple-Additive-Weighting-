@@ -233,8 +233,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
               const isSubmit = reply.value.includes('HITUNG') || reply.value === '__PREF_HITUNG_RANKING__';
               const isEscape = reply.value === '__ESCAPE_KURANG_YAKIN__';
               const isSecondary = reply.value.includes('ULANGI') || reply.value.includes('KEMBALI') || reply.value.includes('BERANDA') || reply.value.includes('SELESAI');
-              let btnClass = 'px-3 py-2 text-sm rounded-full border transition-all duration-150 cursor-pointer ';
-              btnClass += 'hover:scale-105 hover:shadow-lg active:scale-95 ';
+              let btnClass = 'px-3 py-2 text-sm rounded-full border transition-all duration-150 cursor-pointer hover:scale-105 hover:shadow-lg active:scale-95 ';
               if (isPrefSelected) btnClass += 'bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-500 ';
               else if (isSubmit) btnClass += 'bg-blue-600 border-blue-500 text-white hover:bg-blue-500 hover:shadow-blue-500/30 ';
               else if (isEscape) btnClass += 'bg-amber-600/20 border-amber-500 text-amber-300 hover:bg-amber-600/30 ';
@@ -244,6 +243,8 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
             })}
           </div>
         )}
+        {/* Spacer — always 15% of viewport height, stays when scrolling up */}
+        <div className="shrink-0" style={{ height: '15vh' }} />
         <div ref={messagesEndRef} />
       </div>
       {/* Phase 1: Welcome Form — BOTTOM */}
