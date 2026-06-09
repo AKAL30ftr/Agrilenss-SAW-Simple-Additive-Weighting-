@@ -22,16 +22,8 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [phase, setPhase] = useState<FlowPhase>('welcome');
-  const [formName, setFormName] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    try { const s = localStorage.getItem(STORAGE_KEY); if (s) { const d = JSON.parse(s); if (d.name) return d.name; } } catch { /* */ }
-    return '';
-  });
-  const [formGender, setFormGender] = useState<'laki' | 'perempuan' | ''>(() => {
-    if (typeof window === 'undefined') return '';
-    try { const s = localStorage.getItem(STORAGE_KEY); if (s) { const d = JSON.parse(s); if (d.gender) return d.gender; } } catch { /* */ }
-    return '';
-  });
+  const [formName, setFormName] = useState('');
+  const [formGender, setFormGender] = useState<'laki' | 'perempuan' | ''>('');
   const [userName, setUserName] = useState('');
   const [userGender, setUserGender] = useState<'laki' | 'perempuan'>('laki');
   const [collectionState, setCollectionState] = useState<CollectionState>(createInitialCollectionState);
@@ -78,7 +70,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setMessages((p) => [...p, ...msgs.map((m) => ({ ...m, id: nextMsgId() }))]);
   };
 
-  // ── Get quick replies for current phase ──────────────────────────────────────
   const quickReplies = phase === 'collecting'
     ? getQuickReplies('collecting', collectionState)
     : getQuickReplies(phase);
@@ -107,7 +98,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const handleShowFaqCategories = () => setFaqView('categories');
   const handleBackFromFaq = () => { setFaqView('none'); setReturningToRingkasan(true); };
 
-  // ── PHASE 3: COLLECTING — batch, forced sequence, NO text input ──────────────
+  // ── PHASE 3: COLLECTING ──────────────────────────────────────────────────────
   const handleCollectingQuickReply = (value: string) => {
     if (isLoading) return;
     const result = collectingHandleReply(collectionState, value, userName, userGender);
@@ -222,67 +213,48 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setMessages([{ id: nextMsgId(), role: 'assistant', content: welcomeMessage() }]);
         setUserName(''); setUserGender('laki'); setCollectedParams(null); setSurvivingCrops([]);
         setEliminatedCrops([]); setOutOfRangeParams([]); setSelectedCropDetail(null); setFaqView('none');
+        setFormName(''); setFormGender('');
       }
       return;
     }
   };
 
-  // ── RENDER ────────────────────────────────────────────────────────────────────
+  // ── RENDER — WhatsApp/Messenger style ────────────────────────────────────────
+  // Order: Form (top) → Messages (scrollable) → Quick Replies (bottom)
   return (
-    <div className="flex flex-col h-full">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'assistant' && <Bot className="w-6 h-6 text-emerald-400 shrink-0 mt-1" />}
-            <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-br-sm' : 'bg-white/10 text-white/90 rounded-bl-sm'}`}>
-              {msg.content}
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex gap-2 justify-start">
-            <Bot className="w-6 h-6 text-emerald-400 shrink-0 mt-1" />
-            <div className="bg-white/10 rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm text-white/70">
-              <AnimatedDots />
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Phase 1: Welcome Form — compact, bottom-fixed style ───────────────────── */}
+    <div className="flex flex-col h-full bg-[#0b141a]">
+      {/* Phase 1: Welcome Form — at top, compact ──────────────────────────────── */}
       {phase === 'welcome' && (
-        <div className="shrink-0 p-3 border-t border-white/10 bg-black/20">
+        <div className="shrink-0 p-3 bg-[#1f2c33] border-b border-white/5">
           <div className="space-y-2">
             <input
               type="text"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               placeholder="Masukkan nama Anda..."
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-emerald-400/50"
+              className="w-full bg-[#2a3942] border border-[#3b4a54] rounded-lg px-3 py-2 text-sm text-white placeholder-[#8696a0] focus:outline-none focus:border-emerald-500"
             />
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormGender('laki'); }}
-                className={`flex-1 py-1.5 text-xs rounded-lg border transition-colors ${formGender === 'laki' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'}`}
+                onClick={() => setFormGender('laki')}
+                className={`flex-1 py-1.5 text-xs rounded-lg border ${formGender === 'laki' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0] hover:bg-[#3b4a54]'}`}
               >
                 Laki-laki
               </button>
               <button
                 type="button"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormGender('perempuan'); }}
-                className={`flex-1 py-1.5 text-xs rounded-lg border transition-colors ${formGender === 'perempuan' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'}`}
+                onClick={() => setFormGender('perempuan')}
+                className={`flex-1 py-1.5 text-xs rounded-lg border ${formGender === 'perempuan' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0] hover:bg-[#3b4a54]'}`}
               >
                 Perempuan
               </button>
             </div>
             <button
               type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleFormSubmit(); }}
+              onClick={handleFormSubmit}
               disabled={!formName.trim()}
-              className="w-full py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+              className="w-full py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed text-white"
             >
               Mulai Konsultasi
             </button>
@@ -290,19 +262,38 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         </div>
       )}
 
-      {/* Quick Replies — ALL phases except welcome ──────────────────────────────── */}
+      {/* Messages — scrollable area ───────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role === 'assistant' && <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />}
+            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-[#1f2c33] text-white/90 rounded-tl-none'}`}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />
+            <div className="bg-[#1f2c33] rounded-lg rounded-tl-none px-3 py-2 text-sm text-white/50">
+              <AnimatedDots />
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Quick Replies — bottom ────────────────────────────────────────────────── */}
       {phase !== 'welcome' && quickReplies.length > 0 && (
-        <div className="shrink-0 px-4 pb-2 flex flex-wrap gap-2">
+        <div className="shrink-0 px-3 py-2 bg-[#1f2c33] border-t border-white/5 flex flex-wrap gap-2">
           {quickReplies.map((reply) => (
             <button key={reply.value} onClick={() => handleQuickReply(reply.value)} disabled={isLoading}
-              className="px-3 py-1.5 text-xs rounded-full border border-white/20 text-white/80 hover:bg-white/10 hover:border-emerald-400/50 transition-colors disabled:opacity-40">
+              className="px-3 py-1.5 text-xs rounded-full border border-[#3b4a54] text-[#8696a0] hover:bg-[#2a3942] hover:border-emerald-500/50 hover:text-white disabled:opacity-30 transition-colors">
               {reply.label}
             </button>
           ))}
         </div>
       )}
-
-      {/* NO TEXT INPUT — complete bot-lead ───────────────────────────────────────── */}
     </div>
   );
 }
