@@ -1,9 +1,3 @@
-/**
- * All bot messages — humanizer version
- * Source of truth: VOICE-AND-TONE-FINDINGS.md
- * Every message function receives (name, gender) for proper sapaan.
- */
-
 export type Sapaan = 'laki' | 'perempuan';
 
 function sap(gender: Sapaan | ''): string {
@@ -46,14 +40,14 @@ export function kurangYakinFallback(param: string, name: string, gender: Sapaan 
     'tekstur tanah': `Tidak masalah, ${s} ${name}. Coba ambil tanah di lahan ${s}, lalu basahi sedikit. Kalau terasa lengket dan bisa dibentuk, berarti tanah liat. Kalau terasa halus dan gembur, berarti lempung. Kalau terasa kasar seperti pasir, berarti tanah berpasir. Perkiraan kasar sudah cukup, ${s}.`,
     'intensitas cahaya': `Tidak masalah, ${s} ${name}. Coba perhatikan, pagi sampai sore, kira-kira berapa jam lahan ${s} terkena sinar matahari langsung? Kalau ada pohon besar atau bangunan yang menghalangi, biasanya 6-8 jam. Kalau terbuka, bisa 10-12 jam. Perkiraan kasar sudah cukup, ${s}.`,
   };
-  return fallbacks[param] || `Silakan ketik perkiraan ${param} ${s}. Perkiraan kasar sudah cukup.`;
+  return fallbacks[param] || `Silakan pilih perkiraan ${param} ${s}. Perkiraan kasar sudah cukup.`;
 }
 
 // ─── Phase 4: Confirming ──────────────────────────────────────────────────────
 
 export function confirmingMessage(name: string, gender: Sapaan | ''): string {
   const s = sap(gender);
-  return `Baik, ${s} ${name}! Semua data lahan sudah terkumpul. Silakan periksa dulu, apakah data di bawah ini sudah benar:\n\nKalau ada yang salah, saya bisa ulangi dari awal.`;
+  return `Baik, ${s} ${name}! Semua data lahan sudah terkumpul. Silakan periksa dulu, apakah data di bawah ini sudah benar:`;
 }
 
 // ─── Phase 5: Preference ──────────────────────────────────────────────────────
@@ -97,8 +91,6 @@ export function errorMessage(name: string, gender: Sapaan | ''): string {
   const s = sap(gender);
   return `Maaf, ${s} ${name}, ada kendala teknis. Silakan coba lagi nanti, atau hubungi penyuluh pertanian setempat untuk konsultasi langsung.`;
 }
-
-// ─── Loading screen ───────────────────────────────────────────────────────────
 
 export function loadingMessage(name: string, gender: Sapaan | ''): string {
   const s = sap(gender);

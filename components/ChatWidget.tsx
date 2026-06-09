@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Bot } from 'lucide-react';
 import type { FlowPhase, FaqView, Message, StoredUserData } from '@/lib/chat/types';
-import { STORAGE_KEY, PARAM_ORDER } from '@/lib/chat/constants';
+import { STORAGE_KEY, PARAM_ORDER, PARAM_LABELS } from '@/lib/chat/constants';
 import { extractOutOfRangeParams, AnimatedDots } from '@/lib/chat/helpers';
-import { welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage } from '@/lib/chat/content/messages';
+import { welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage, confirmingMessage } from '@/lib/chat/content/messages';
 import { getQuickReplies } from '@/lib/chat/content/quick-replies';
 import { TOOLTIPS } from '@/lib/chat/content/tooltips';
 import { PREFERENCE_OPTIONS, MAX_PREFERENCE_SELECTION, handleTogglePreference } from '@/lib/chat/phases/preference';
@@ -101,7 +101,19 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     const result = collectingHandleReply(collectionState, value, userName, userGender);
     setCollectionState(result.collectionState);
     addMessages(result.messagesToAdd);
-    if (result.isComplete) setPhase('confirming');
+    if (result.isComplete) {
+      // Show data recap before moving to confirming
+      setPhase('confirming');
+      const s = userGender === 'perempuan' ? 'Ibu' : 'Pak';
+      const recapLines = PARAM_ORDER.map(param => {
+        const label = PARAM_LABELS[param]?.label || param;
+        const emoji = PARAM_LABELS[param]?.emoji || '';
+        const answer = collectionState.answers[param] || '(tidak dijawab)';
+        return `${emoji} ${label}: ${answer}`;
+      });
+      const recapContent = confirmingMessage(userName, userGender) + '\n\n' + recapLines.join('\n') + '\n\nKalau ada yang salah, saya bisa ulangi dari awal.';
+      addMessages([{ role: 'assistant', content: recapContent }]);
+    }
   };
 
   // ── PHASE 4: CONFIRMING ──────────────────────────────────────────────────────
@@ -216,12 +228,45 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     }
   };
 
-  // ── RENDER ────────────────────────────────────────────────────────────────────
+  // ── RENDER — WhatsApp style: messages top, form/quick replies bottom ─────────
   return (
     <div className="flex flex-col h-full bg-[#0b141a]">
-      {/* Phase 1: Welcome Form — at top ────────────────────────────────────────── */}
+      {/* Messages — scrollable ────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role === 'assistant' && <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />}
+            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-[#1f2c33] text-white/90 rounded-tl-none'}`}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />
+            <div className="bg-[#1f2c33] rounded-lg rounded-tl-none px-3 py-2 text-sm text-white/50">
+              <AnimatedDots />
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Quick Replies — bottom ────────────────────────────────────────────────── */}
+      {phase !== 'welcome' && quickReplies.length > 0 && (
+        <div className="shrink-0 px-3 py-2 bg-[#1f2c33] border-t border-white/5 flex flex-wrap gap-2">
+          {quickReplies.map((reply) => (
+            <button key={reply.value} onClick={() => handleQuickReply(reply.value)} disabled={isLoading}
+              className="px-3 py-1.5 text-xs rounded-full border border-[#3b4a54] text-[#8696a0] hover:bg-[#2a3942] hover:border-emerald-500/50 hover:text-white disabled:opacity-30 transition-colors">
+              {reply.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Phase 1: Welcome Form — BOTTOM (WhatsApp style) ──────────────────────── */}
       {phase === 'welcome' && (
-        <div className="shrink-0 p-3 bg-[#1f2c33] border-b border-white/5">
+        <div className="shrink-0 p-3 bg-[#1f2c33] border-t border-white/5">
           <div className="space-y-2">
             <input
               type="text"
@@ -255,39 +300,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
               Mulai Konsultasi
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Messages — scrollable, takes remaining space ──────────────────────────── */}
-      <div className={`overflow-y-auto p-3 space-y-2 ${phase === 'welcome' ? 'flex-none' : 'flex-1'}`}>
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'assistant' && <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />}
-            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-[#1f2c33] text-white/90 rounded-tl-none'}`}>
-              {msg.content}
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />
-            <div className="bg-[#1f2c33] rounded-lg rounded-tl-none px-3 py-2 text-sm text-white/50">
-              <AnimatedDots />
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Quick Replies — bottom ────────────────────────────────────────────────── */}
-      {phase !== 'welcome' && quickReplies.length > 0 && (
-        <div className="shrink-0 px-3 py-2 bg-[#1f2c33] border-t border-white/5 flex flex-wrap gap-2">
-          {quickReplies.map((reply) => (
-            <button key={reply.value} onClick={() => handleQuickReply(reply.value)} disabled={isLoading}
-              className="px-3 py-1.5 text-xs rounded-full border border-[#3b4a54] text-[#8696a0] hover:bg-[#2a3942] hover:border-emerald-500/50 hover:text-white disabled:opacity-30 transition-colors">
-              {reply.label}
-            </button>
-          ))}
         </div>
       )}
     </div>
