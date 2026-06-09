@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Bot, Send } from 'lucide-react';
-import { FAQ_CONTENT, type FaqSection, type FaqItem } from '@/lib/faq-content';
+import { Bot } from 'lucide-react';
 import type { FlowPhase, FaqView, Message, StoredUserData } from '@/lib/chat/types';
-import { STORAGE_KEY, PARAM_ORDER, PARAM_TO_FAQ } from '@/lib/chat/constants';
-import { computeClientMissingParams, extractOutOfRangeParams, AnimatedDots } from '@/lib/chat/helpers';
+import { STORAGE_KEY, PARAM_ORDER } from '@/lib/chat/constants';
+import { extractOutOfRangeParams, AnimatedDots } from '@/lib/chat/helpers';
 import { welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage } from '@/lib/chat/content/messages';
 import { QUICK_REPLIES } from '@/lib/chat/content/quick-replies';
 import { TOOLTIPS } from '@/lib/chat/content/tooltips';
@@ -13,7 +12,6 @@ import { PREFERENCE_OPTIONS, MAX_PREFERENCE_SELECTION, handleTogglePreference } 
 import type { CollectionState } from '@/lib/chat/phases/types';
 import {
   handleQuickReply as collectingHandleReply,
-  handleFreeText as collectingHandleText,
   getCurrentQuestion,
   isCollectionComplete,
   createInitialCollectionState,
@@ -22,7 +20,6 @@ import {
 export default function ChatWidget({ fullPage = false }: { fullPage?: boolean }) {
   const [isOpen, setIsOpen] = useState(fullPage);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [phase, setPhase] = useState<FlowPhase>('welcome');
   const [formName, setFormName] = useState(() => {
@@ -38,7 +35,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [userName, setUserName] = useState('');
   const [userGender, setUserGender] = useState<'laki' | 'perempuan'>('laki');
   const [collectionState, setCollectionState] = useState<CollectionState>(createInitialCollectionState);
-  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const [collectedParams, setCollectedParams] = useState<Record<string, unknown> | null>(null);
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [showPreferences, setShowPreferences] = useState(false);
@@ -48,16 +44,12 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [selectedCropDetail, setSelectedCropDetail] = useState<{ name: string; score: string } | null>(null);
   const [darkHorse, setDarkHorse] = useState<Array<{ cropName: string; totalProximity: number; failReasons: string[]; advice: string }>>([]);
   const [faqView, setFaqView] = useState<FaqView>('none');
-  const [faqSelectedSection, setFaqSelectedSection] = useState<FaqSection | null>(null);
-  const [faqSelectedItem, setFaqSelectedItem] = useState<FaqItem | null>(null);
-  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
-  const [escapeKurangYakinActive, setEscapeKurangYakinActive] = useState(false);
   const [returningToRingkasan, setReturningToRingkasan] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const msgIdCounter = useRef(0);
   const nextMsgId = () => { msgIdCounter.current += 1; return `msg-${msgIdCounter.current}`; };
-  const isInputDisabled = !escapeKurangYakinActive;
 
   const saveToStorage = useCallback((name: string, gender: 'laki' | 'perempuan', lastParams?: Record<string, unknown>) => {
     if (typeof window === 'undefined') return;
@@ -82,7 +74,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     return () => window.removeEventListener('keydown', h);
   }, [isOpen, fullPage]);
 
-  // Helper: add messages with auto-generated IDs
   const addMessages = (msgs: Array<{ role: 'user' | 'assistant'; content: string }>) => {
     setMessages((p) => [...p, ...msgs.map((m) => ({ ...m, id: nextMsgId() }))]);
   };
@@ -108,25 +99,15 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const handleRingkasanLanjut = () => {
     setCollectionState(createInitialCollectionState()); setPhase('collecting'); setFaqView('none');
     addMessages([{ role: 'user', content: 'Mengerti, lanjut konsultasi' }]);
-    const q = getCurrentQuestion(createInitialCollectionState(), userName, userGender);
-    addMessages([{ role: 'assistant', content: q }]);
+    addMessages([{ role: 'assistant', content: getCurrentQuestion(createInitialCollectionState(), userName, userGender) }]);
   };
   const handleShowFaqCategories = () => setFaqView('categories');
-  const handleBackFromFaq = () => { setFaqView('none'); setFaqSelectedSection(null); setFaqSelectedItem(null); setReturningToRingkasan(true); };
+  const handleBackFromFaq = () => { setFaqView('none'); setReturningToRingkasan(true); };
 
-  // ── PHASE 3: COLLECTING (batch, forced sequence) ──
+  // ── PHASE 3: COLLECTING — batch, forced sequence, NO text input ──
   const handleCollectingQuickReply = (value: string) => {
     if (isLoading) return;
     const result = collectingHandleReply(collectionState, value, userName, userGender);
-    setCollectionState(result.collectionState);
-    addMessages(result.messagesToAdd);
-    if (result.isKurangYakin) { setEscapeKurangYakinActive(true); return; }
-    if (result.isComplete) setPhase('confirming');
-  };
-
-  const handleCollectingTextSubmit = (text: string) => {
-    setEscapeKurangYakinActive(false);
-    const result = collectingHandleText(collectionState, text, userName, userGender);
     setCollectionState(result.collectionState);
     addMessages(result.messagesToAdd);
     if (result.isComplete) setPhase('confirming');
@@ -243,18 +224,10 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     }
   };
 
-  // ── TEXT INPUT ──
-  const handleTextSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-    const text = inputValue.trim(); setInputValue('');
-    addMessages([{ role: 'user', content: text }]);
-    if (phase === 'collecting' && escapeKurangYakinActive) handleCollectingTextSubmit(text);
-  };
-
   // ── RENDER ──
   return (
     <div className="flex flex-col h-full">
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -275,7 +248,44 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         <div ref={messagesEndRef} />
       </div>
 
-      {quickReplies.length > 0 && (
+      {/* Phase 1: Welcome Form — input nama + gender + submit */}
+      {phase === 'welcome' && (
+        <div className="p-4 border-t border-white/10">
+          <div className="bg-white/5 rounded-xl p-4 space-y-3">
+            <input
+              type="text"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="Masukkan nama Anda..."
+              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-emerald-400/50"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFormGender('laki')}
+                className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${formGender === 'laki' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'}`}
+              >
+                Laki-laki
+              </button>
+              <button
+                onClick={() => setFormGender('perempuan')}
+                className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${formGender === 'perempuan' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'}`}
+              >
+                Perempuan
+              </button>
+            </div>
+            <button
+              onClick={handleFormSubmit}
+              disabled={!formName.trim()}
+              className="w-full py-2.5 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+            >
+              Mulai Konsultasi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Replies — all phases except welcome (welcome has its own form) */}
+      {phase !== 'welcome' && quickReplies.length > 0 && (
         <div className="px-4 pb-2 flex flex-wrap gap-2">
           {quickReplies.map((reply) => (
             <button key={reply.value} onClick={() => handleQuickReply(reply.value)} disabled={isLoading}
@@ -286,15 +296,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         </div>
       )}
 
-      <form onSubmit={handleTextSubmit} className="p-4 border-t border-white/10 flex gap-2">
-        <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)}
-          disabled={isInputDisabled} placeholder={isInputDisabled ? 'Pilih jawaban di atas' : 'Ketik jawaban...'}
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-400/50 disabled:opacity-40" />
-        <button type="submit" disabled={isInputDisabled || !inputValue.trim()}
-          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl px-4 py-2.5 transition-colors">
-          <Send className="w-4 h-4" />
-        </button>
-      </form>
+      {/* NO TEXT INPUT — complete bot-lead, all interactions via quick replies */}
     </div>
   );
 }

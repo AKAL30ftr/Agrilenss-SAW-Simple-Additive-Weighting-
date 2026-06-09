@@ -16,15 +16,15 @@ export function isCollectionComplete(state: CollectionState): boolean {
 export function getCurrentQuestion(state: CollectionState, name: string, gender: Sapaan | ''): string {
   const param = getCurrentParam(state);
   if (!param) return '';
-  const questions: Record<string, (n: string, s: string) => string> = {
-    'ketinggian': (n, s) => `Baik, ${s} ${n}. Selanjutnya saya ingin tahu soal ketinggian lahan ${s}. Ini penting karena beda ketinggian, beda juga suhu dan jenis tanaman yang bisa tumbuh. Kira-kira lahan ${s} di dataran rendah, sedang, atau pegunungan?`,
-    'curah hujan': (n, s) => `Oke, selanjutnya saya ingin menanyakan terkait curah hujan di lingkungan lokasi ${s}. Air adalah kebutuhan utama tanaman, jadi ini salah satu hal yang paling penting. Kira-kira seberapa sering hujannya, ${s}?`,
-    'pH tanah': (n, s) => `Baik, selanjutnya soal kondisi tanah. Ini agak sulit diamati langsung, tapi ${s} pernah tidak melihat tanaman di lahan ${s} sering menguning atau kerdil? Atau tumbuh biasa saja?`,
-    'tekstur tanah': (n, s) => `Selanjutnya, saya ingin menanyakan tentang tekstur tanah di lahan ${s}. Cara mudahnya, kalau diambil dan dibasahi, tanah ${s} terasa lengket, gembur, atau kasar seperti pasir?`,
-    'intensitas cahaya': (n, s) => `Terakhir, saya ingin menanyakan tentang paparan sinar matahari di lahan ${s}. Kira-kira seberapa lama lahan ${s} terkena sinar matahari langsung setiap harinya?`,
+  const s = gender === 'perempuan' ? 'Ibu' : 'Pak';
+  const questions: Record<string, (n: string, sap: string) => string> = {
+    'ketinggian': (n, sap) => `Baik, ${sap} ${n}. Selanjutnya saya ingin tahu soal ketinggian lahan ${sap}. Ini penting karena beda ketinggian, beda juga suhu dan jenis tanaman yang bisa tumbuh. Kira-kira lahan ${sap} di dataran rendah, sedang, atau pegunungan?`,
+    'curah hujan': (n, sap) => `Oke, selanjutnya saya ingin menanyakan terkait curah hujan di lingkungan lokasi ${sap}. Air adalah kebutuhan utama tanaman, jadi ini salah satu hal yang paling penting. Kira-kira seberapa sering hujannya, ${sap}?`,
+    'pH tanah': (n, sap) => `Baik, selanjutnya soal kondisi tanah. Ini agak sulit diamati langsung, tapi ${sap} pernah tidak melihat tanaman di lahan ${sap} sering menguning atau kerdil? Atau tumbuh biasa saja?`,
+    'tekstur tanah': (n, sap) => `Selanjutnya, saya ingin menanyakan tentang tekstur tanah di lahan ${sap}. Cara mudahnya, kalau diambil dan dibasahi, tanah ${sap} terasa lengket, gembur, atau kasar seperti pasir?`,
+    'intensitas cahaya': (n, sap) => `Terakhir, saya ingin menanyakan tentang paparan sinar matahari di lahan ${sap}. Kira-kira seberapa lama lahan ${sap} terkena sinar matahari langsung setiap harinya?`,
   };
-  const sap = gender === 'perempuan' ? 'Ibu' : 'Pak';
-  return questions[param]?.(name, sap) || '';
+  return questions[param]?.(name, s) || '';
 }
 
 export function getKurangYakinFallback(param: string, name: string, gender: Sapaan | ''): string {
@@ -36,62 +36,44 @@ export function getKurangYakinFallback(param: string, name: string, gender: Sapa
     'tekstur tanah': `Tidak masalah, ${s} ${name}. Coba ambil tanah di lahan ${s}, lalu basahi sedikit. Kalau terasa lengket dan bisa dibentuk, berarti tanah liat. Kalau terasa halus dan gembur, berarti lempung. Kalau terasa kasar seperti pasir, berarti tanah berpasir. Perkiraan kasar sudah cukup, ${s}.`,
     'intensitas cahaya': `Tidak masalah, ${s} ${name}. Coba perhatikan, pagi sampai sore, kira-kira berapa jam lahan ${s} terkena sinar matahari langsung? Kalau ada pohon besar atau bangunan yang menghalangi, biasanya 6-8 jam. Kalau terbuka, bisa 10-12 jam. Perkiraan kasar sudah cukup, ${s}.`,
   };
-  return fallbacks[param] || `Silakan ketik perkiraan ${param} ${s}. Perkiraan kasar sudah cukup.`;
+  return fallbacks[param] || `Silakan pilih perkiraan ${param} ${s}. Perkiraan kasar sudah cukup.`;
 }
 
 export function handleQuickReply(
-  state: CollectionState, value: string, userName: string, gender: Sapaan | ''
-): { collectionState: CollectionState; messagesToAdd: MessageWithoutId[]; isComplete: boolean; isKurangYakin: boolean } {
+  state: CollectionState, value: string, userName: string, userGender: Sapaan | ''
+): { collectionState: CollectionState; messagesToAdd: MessageWithoutId[]; isComplete: boolean } {
   const param = getCurrentParam(state);
   const isKurangYakin = value === '__ESCAPE_KURANG_YAKIN__';
 
   if (isKurangYakin) {
-    const fallbackMsg = getKurangYakinFallback(param, userName, gender);
+    // Show fallback question — user still picks from quick replies, NO text input
+    const fallbackMsg = getKurangYakinFallback(param, userName, userGender);
     return {
-      collectionState: state,
+      collectionState: state, // Don't advance — user still needs to answer this param
       messagesToAdd: [
-        { role: 'user', content: `Saya kurang yakin soal ${param}, tapi saya coba jawab.` },
+        { role: 'user', content: 'Saya kurang yakin' },
         { role: 'assistant', content: fallbackMsg },
       ],
       isComplete: false,
-      isKurangYakin: true,
     };
   }
 
+  // Normal answer — store and advance
   const newAnswers = { ...state.answers, [param]: value };
   const nextIndex = state.currentParamIndex + 1;
   const complete = nextIndex >= PARAM_ORDER.length;
   const userMsg: MessageWithoutId = { role: 'user', content: value };
 
   if (complete) {
-    return { collectionState: { currentParamIndex: nextIndex, answers: newAnswers }, messagesToAdd: [userMsg], isComplete: true, isKurangYakin: false };
+    return {
+      collectionState: { currentParamIndex: nextIndex, answers: newAnswers },
+      messagesToAdd: [userMsg],
+      isComplete: true,
+    };
   }
 
   const nextParam = PARAM_ORDER[nextIndex];
-  const nextQuestion = getCurrentQuestion({ ...state, currentParamIndex: nextIndex }, userName, gender);
-  return {
-    collectionState: { currentParamIndex: nextIndex, answers: newAnswers },
-    messagesToAdd: [userMsg, { role: 'assistant', content: nextQuestion }],
-    isComplete: false,
-    isKurangYakin: false,
-  };
-}
-
-export function handleFreeText(
-  state: CollectionState, text: string, userName: string, gender: Sapaan | ''
-): { collectionState: CollectionState; messagesToAdd: MessageWithoutId[]; isComplete: boolean } {
-  const param = getCurrentParam(state);
-  const newAnswers = { ...state.answers, [param]: text };
-  const nextIndex = state.currentParamIndex + 1;
-  const complete = nextIndex >= PARAM_ORDER.length;
-  const userMsg: MessageWithoutId = { role: 'user', content: text };
-
-  if (complete) {
-    return { collectionState: { currentParamIndex: nextIndex, answers: newAnswers }, messagesToAdd: [userMsg], isComplete: true };
-  }
-
-  const nextParam = PARAM_ORDER[nextIndex];
-  const nextQuestion = getCurrentQuestion({ ...state, currentParamIndex: nextIndex }, userName, gender);
+  const nextQuestion = getCurrentQuestion({ ...state, currentParamIndex: nextIndex }, userName, userGender);
   return {
     collectionState: { currentParamIndex: nextIndex, answers: newAnswers },
     messagesToAdd: [userMsg, { role: 'assistant', content: nextQuestion }],
