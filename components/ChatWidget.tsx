@@ -74,9 +74,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     ? getQuickReplies('collecting', collectionState)
     : getQuickReplies(phase);
 
-  const currentParam = PARAM_ORDER[collectionState.currentParamIndex] || '';
-  const currentTooltip = currentParam ? TOOLTIPS[currentParam] : undefined;
-
   // ── PHASE 1: FORM SUBMIT ─────────────────────────────────────────────────────
   const handleFormSubmit = () => {
     const name = formName.trim() || 'Petani';
@@ -219,11 +216,10 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     }
   };
 
-  // ── RENDER — WhatsApp/Messenger style ────────────────────────────────────────
-  // Order: Form (top) → Messages (scrollable) → Quick Replies (bottom)
+  // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-[#0b141a]">
-      {/* Phase 1: Welcome Form — at top, compact ──────────────────────────────── */}
+      {/* Phase 1: Welcome Form — at top ────────────────────────────────────────── */}
       {phase === 'welcome' && (
         <div className="shrink-0 p-3 bg-[#1f2c33] border-b border-white/5">
           <div className="space-y-2">
@@ -238,14 +234,14 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
               <button
                 type="button"
                 onClick={() => setFormGender('laki')}
-                className={`flex-1 py-1.5 text-xs rounded-lg border ${formGender === 'laki' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0] hover:bg-[#3b4a54]'}`}
+                className={`flex-1 py-1.5 text-xs rounded-lg border ${formGender === 'laki' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0]'}`}
               >
                 Laki-laki
               </button>
               <button
                 type="button"
                 onClick={() => setFormGender('perempuan')}
-                className={`flex-1 py-1.5 text-xs rounded-lg border ${formGender === 'perempuan' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0] hover:bg-[#3b4a54]'}`}
+                className={`flex-1 py-1.5 text-xs rounded-lg border ${formGender === 'perempuan' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0]'}`}
               >
                 Perempuan
               </button>
@@ -262,8 +258,8 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         </div>
       )}
 
-      {/* Messages — scrollable area ───────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      {/* Messages — scrollable, takes remaining space ──────────────────────────── */}
+      <div className={`overflow-y-auto p-3 space-y-2 ${phase === 'welcome' ? 'flex-none' : 'flex-1'}`}>
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />}
