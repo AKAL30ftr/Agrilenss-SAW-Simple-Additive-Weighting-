@@ -10,7 +10,11 @@ export type FlowPhase =
   | 'confirming'
   | 'preference'
   | 'detail'
-  | 'done';
+  | 'done'
+  | 'loading'
+  | 'loading_result'
+  | 'closing';
+export type MessageWithoutId = Omit<Message, 'id'>;
 
 export type FaqView = 'none' | 'categories' | 'items' | 'answer';
 

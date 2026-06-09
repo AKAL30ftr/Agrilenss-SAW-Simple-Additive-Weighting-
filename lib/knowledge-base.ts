@@ -659,6 +659,35 @@ export function parseUserInput(input: string): ParsedUserInput {
   }
   return result;
 }
+/**
+ * Parse all 5 collected parameter answers into a single ParsedUserInput.
+ * Used by batch collecting: each answer is parsed independently, results are merged.
+ * Priority: first non-null value wins (params are collected in order).
+ */
+export function parseAllParams(answers: Record<string, string>): ParsedUserInput {
+  const combined: ParsedUserInput = {
+    pH: null, texture: null, elevation: null, light: null, rainfall: null,
+    budget: null, landArea: null, rawKeywords: [],
+  };
+  const paramKeyMap: Record<string, keyof ParsedUserInput> = {
+    'ketinggian': 'elevation',
+    'curah hujan': 'rainfall',
+    'pH tanah': 'pH',
+    'tekstur tanah': 'texture',
+    'intensitas cahaya': 'light',
+  };
+  for (const [param, key] of Object.entries(paramKeyMap)) {
+    const answer = answers[param];
+    if (!answer) continue;
+    const parsed = parseUserInput(answer);
+    const value = parsed[key] as number | string | null;
+    if (value !== null && value !== undefined) {
+      (combined[key] as number | string) = value;
+    }
+    combined.rawKeywords.push(...parsed.rawKeywords);
+  }
+  return combined;
+}
 
 /* Detect which critical params are missing */
 export function detectMissingParams(parsed: ParsedUserInput, uncertainParams: string[] = []): string[] {
