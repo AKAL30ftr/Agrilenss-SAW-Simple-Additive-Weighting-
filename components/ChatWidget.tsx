@@ -207,8 +207,8 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-[#0b141a]">
-      {/* Messages — scrollable with bottom padding */}
-      <div className="flex-1 overflow-y-auto p-3 pb-[15%] space-y-2">
+      {/* Messages + Quick Replies — single scrollable area */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />}
@@ -218,37 +218,38 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
           </div>
         ))}
         {isLoading && (<div className="flex justify-start"><Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" /><div className="bg-[#1f2c33] rounded-lg rounded-tl-none px-3 py-2 text-sm text-white/50"><AnimatedDots /></div></div>)}
+        {/* Quick Replies — INSIDE scroll area, directly after last bubble */}
+        {phase !== 'welcome' && quickReplies.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {quickReplies.map((reply) => {
+              const isPrefSelected = phase === 'preference' && selectedPreferences.includes(reply.value);
+              const isPrefDisabled = phase === 'preference' && !selectedPreferences.includes(reply.value) && selectedPreferences.length >= MAX_PREFERENCE_SELECTION && reply.value !== '__PREF_HITUNG_RANKING__';
+              const isSubmit = reply.value.includes('HITUNG') || reply.value === '__PREF_HITUNG_RANKING__';
+              const isEscape = reply.value === '__ESCAPE_KURANG_YAKIN__';
+              const isSecondary = reply.value.includes('ULANGI') || reply.value.includes('KEMBALI') || reply.value.includes('BERANDA') || reply.value.includes('SELESAI');
+              let btnClass = 'px-3 py-2 text-sm rounded-full border transition-all duration-150 cursor-pointer ';
+              btnClass += 'hover:scale-105 hover:shadow-lg active:scale-95 ';
+              if (isPrefSelected) btnClass += 'bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-500 ';
+              else if (isSubmit) btnClass += 'bg-blue-600 border-blue-500 text-white hover:bg-blue-500 hover:shadow-blue-500/30 ';
+              else if (isEscape) btnClass += 'bg-amber-600/20 border-amber-500 text-amber-300 hover:bg-amber-600/30 ';
+              else if (isSecondary) btnClass += 'bg-transparent border-[#3b4a54] text-[#8696a0] hover:bg-[#2a3942] hover:text-white ';
+              else btnClass += 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600 hover:text-white hover:border-emerald-400 ';
+              return (<button key={reply.value} onClick={() => handleQuickReply(reply.value)} disabled={isLoading || isPrefDisabled} className={btnClass + 'disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed'}>{reply.label}</button>);
+            })}
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
-      {/* Quick Replies — floating below last message, no background block */}
-      {phase !== 'welcome' && quickReplies.length > 0 && (
-        <div className="shrink-0 px-3 py-2 flex flex-wrap gap-2 justify-center">
-          {quickReplies.map((reply) => {
-            const isPrefSelected = phase === 'preference' && selectedPreferences.includes(reply.value);
-            const isPrefDisabled = phase === 'preference' && !selectedPreferences.includes(reply.value) && selectedPreferences.length >= MAX_PREFERENCE_SELECTION && reply.value !== '__PREF_HITUNG_RANKING__';
-            const isSubmit = reply.value.includes('HITUNG') || reply.value.includes('MULAI') || reply.value === '__PREF_HITUNG_RANKING__';
-            const isEscape = reply.value === '__ESCAPE_KURANG_YAKIN__';
-            const isSecondary = reply.value.includes('ULANGI') || reply.value.includes('KEMBALI') || reply.value.includes('BERANDA');
-            let btnClass = 'px-3 py-2 text-sm rounded-full border ';
-            if (isPrefSelected) btnClass += 'bg-emerald-600 border-emerald-500 text-white ';
-            else if (isSubmit) btnClass += 'bg-blue-600 border-blue-500 text-white ';
-            else if (isEscape) btnClass += 'bg-amber-600/20 border-amber-500 text-amber-300 ';
-            else if (isSecondary) btnClass += 'bg-transparent border-[#3b4a54] text-[#8696a0] ';
-            else btnClass += 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 ';
-            return (<button key={reply.value} onClick={() => handleQuickReply(reply.value)} disabled={isLoading || isPrefDisabled} className={btnClass + 'disabled:opacity-30'}>{reply.label}</button>);
-          })}
-        </div>
-      )}
       {/* Phase 1: Welcome Form — BOTTOM */}
       {phase === 'welcome' && (
         <div className="shrink-0 p-3 bg-[#1f2c33] border-t border-white/5">
           <div className="space-y-2">
             <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Masukkan nama Anda..." className="w-full bg-[#2a3942] border border-[#3b4a54] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#8696a0] focus:outline-none focus:border-emerald-500" />
             <div className="flex gap-2">
-              <button type="button" onClick={() => setFormGender('laki')} className={`flex-1 py-2.5 text-sm rounded-lg border ${formGender === 'laki' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0]'}`}>Laki-laki</button>
-              <button type="button" onClick={() => setFormGender('perempuan')} className={`flex-1 py-2.5 text-sm rounded-lg border ${formGender === 'perempuan' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0]'}`}>Perempuan</button>
+              <button type="button" onClick={() => setFormGender('laki')} className={`flex-1 py-2.5 text-sm rounded-lg border transition-all duration-150 hover:scale-105 active:scale-95 ${formGender === 'laki' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0] hover:bg-[#3b4a54]'}`}>Laki-laki</button>
+              <button type="button" onClick={() => setFormGender('perempuan')} className={`flex-1 py-2.5 text-sm rounded-lg border transition-all duration-150 hover:scale-105 active:scale-95 ${formGender === 'perempuan' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#2a3942] border-[#3b4a54] text-[#8696a0] hover:bg-[#3b4a54]'}`}>Perempuan</button>
             </div>
-            <button type="button" onClick={handleFormSubmit} disabled={!formName.trim()} className="w-full py-2.5 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed text-white">Mulai Konsultasi</button>
+            <button type="button" onClick={handleFormSubmit} disabled={!formName.trim()} className="w-full py-2.5 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 text-white transition-all duration-150">Mulai Konsultasi</button>
           </div>
         </div>
       )}
