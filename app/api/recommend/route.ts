@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
       ].join('\n');
       return withCors(NextResponse.json({
         message, mode: 'all-eliminated',
+        allEliminated: true,
         eliminated: filter1.eliminated.map((e) => ({ name: e.cropName, reasons: e.failReasons })),
         surviving: [], missingParams: [], followUpQuestion: null, userValues: parsed, retrievedContext: [],
         darkHorse: filter1.darkHorse.map((dh) => ({ cropName: dh.cropName, totalProximity: dh.totalProximity, failReasons: dh.failReasons, advice: dh.advice })),

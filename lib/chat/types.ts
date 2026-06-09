@@ -6,6 +6,7 @@
 export type FlowPhase =
   | 'welcome'
   | 'ringkasan'
+  | 'faq'
   | 'collecting'
   | 'confirming'
   | 'preference'
