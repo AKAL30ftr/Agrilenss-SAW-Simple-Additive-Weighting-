@@ -46,12 +46,10 @@ export function handleQuickReply(
   const isKurangYakin = value === '__ESCAPE_KURANG_YAKIN__';
 
   if (isKurangYakin) {
-    // Show fallback question — user still picks from quick replies, NO text input
     const fallbackMsg = getKurangYakinFallback(param, userName, userGender);
     return {
-      collectionState: state, // Don't advance — user still needs to answer this param
+      collectionState: state,
       messagesToAdd: [
-        { role: 'user', content: 'Saya kurang yakin' },
         { role: 'assistant', content: fallbackMsg },
       ],
       isComplete: false,
@@ -62,21 +60,18 @@ export function handleQuickReply(
   const newAnswers = { ...state.answers, [param]: value };
   const nextIndex = state.currentParamIndex + 1;
   const complete = nextIndex >= PARAM_ORDER.length;
-  const userMsg: MessageWithoutId = { role: 'user', content: value };
-
   if (complete) {
     return {
       collectionState: { currentParamIndex: nextIndex, answers: newAnswers },
-      messagesToAdd: [userMsg],
+      messagesToAdd: [],
       isComplete: true,
     };
   }
-
   const nextParam = PARAM_ORDER[nextIndex];
   const nextQuestion = getCurrentQuestion({ ...state, currentParamIndex: nextIndex }, userName, userGender);
   return {
     collectionState: { currentParamIndex: nextIndex, answers: newAnswers },
-    messagesToAdd: [userMsg, { role: 'assistant', content: nextQuestion }],
+    messagesToAdd: [{ role: 'assistant', content: nextQuestion }],
     isComplete: false,
   };
 }
