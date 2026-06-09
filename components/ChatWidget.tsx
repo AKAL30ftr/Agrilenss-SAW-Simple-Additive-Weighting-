@@ -6,7 +6,7 @@ import type { FlowPhase, FaqView, Message, StoredUserData } from '@/lib/chat/typ
 import { STORAGE_KEY, PARAM_ORDER } from '@/lib/chat/constants';
 import { extractOutOfRangeParams, AnimatedDots } from '@/lib/chat/helpers';
 import { welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage } from '@/lib/chat/content/messages';
-import { QUICK_REPLIES } from '@/lib/chat/content/quick-replies';
+import { getQuickReplies } from '@/lib/chat/content/quick-replies';
 import { TOOLTIPS } from '@/lib/chat/content/tooltips';
 import { PREFERENCE_OPTIONS, MAX_PREFERENCE_SELECTION, handleTogglePreference } from '@/lib/chat/phases/preference';
 import type { CollectionState } from '@/lib/chat/phases/types';
@@ -45,9 +45,9 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [darkHorse, setDarkHorse] = useState<Array<{ cropName: string; totalProximity: number; failReasons: string[]; advice: string }>>([]);
   const [faqView, setFaqView] = useState<FaqView>('none');
   const [returningToRingkasan, setReturningToRingkasan] = useState(false);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const msgIdCounter = useRef(0);
   const nextMsgId = () => { msgIdCounter.current += 1; return `msg-${msgIdCounter.current}`; };
 
@@ -78,12 +78,15 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setMessages((p) => [...p, ...msgs.map((m) => ({ ...m, id: nextMsgId() }))]);
   };
 
-  const quickReplies = (phase === 'collecting' && !isCollectionComplete(collectionState))
-    ? (QUICK_REPLIES[PARAM_ORDER[collectionState.currentParamIndex]] || []) : [];
+  // ── Get quick replies for current phase ──────────────────────────────────────
+  const quickReplies = phase === 'collecting'
+    ? getQuickReplies('collecting', collectionState)
+    : getQuickReplies(phase);
+
   const currentParam = PARAM_ORDER[collectionState.currentParamIndex] || '';
   const currentTooltip = currentParam ? TOOLTIPS[currentParam] : undefined;
 
-  // ── PHASE 1: FORM SUBMIT ──
+  // ── PHASE 1: FORM SUBMIT ─────────────────────────────────────────────────────
   const handleFormSubmit = () => {
     const name = formName.trim() || 'Petani';
     const gender = formGender || 'laki';
@@ -95,7 +98,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setPhase('ringkasan'); setFaqView('none');
   };
 
-  // ── PHASE 2: RINGKASAN ──
+  // ── PHASE 2: RINGKASAN ───────────────────────────────────────────────────────
   const handleRingkasanLanjut = () => {
     setCollectionState(createInitialCollectionState()); setPhase('collecting'); setFaqView('none');
     addMessages([{ role: 'user', content: 'Mengerti, lanjut konsultasi' }]);
@@ -104,7 +107,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const handleShowFaqCategories = () => setFaqView('categories');
   const handleBackFromFaq = () => { setFaqView('none'); setReturningToRingkasan(true); };
 
-  // ── PHASE 3: COLLECTING — batch, forced sequence, NO text input ──
+  // ── PHASE 3: COLLECTING — batch, forced sequence, NO text input ──────────────
   const handleCollectingQuickReply = (value: string) => {
     if (isLoading) return;
     const result = collectingHandleReply(collectionState, value, userName, userGender);
@@ -113,7 +116,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     if (result.isComplete) setPhase('confirming');
   };
 
-  // ── PHASE 4: CONFIRMING ──
+  // ── PHASE 4: CONFIRMING ──────────────────────────────────────────────────────
   const handleHitungRekomendasi = () => {
     const apiParams: Record<string, unknown> = {};
     for (const [param, answer] of Object.entries(collectionState.answers)) apiParams[param] = answer;
@@ -122,7 +125,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     proceedWithCalculation(apiParams);
   };
 
-  // ── PHASE 5-6: PREFERENCE → LOADING → RESULT ──
+  // ── PHASE 5-6: PREFERENCE → LOADING → RESULT ─────────────────────────────────
   const proceedWithCalculation = async (params: Record<string, unknown>, preferences?: string[]) => {
     setShowLoadingScreen(true); setIsLoading(true); setShowPreferences(false);
     let resolveDelay: () => void;
@@ -161,7 +164,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     proceedWithCalculation(collectedParams || {}, selectedPreferences);
   };
 
-  // ── PHASE 6: RESULT ──
+  // ── PHASE 6: RESULT ──────────────────────────────────────────────────────────
   const handleLihatDetail = (cropName: string) => {
     const crop = survivingCrops.find((c) => c.name === cropName);
     if (crop) { setSelectedCropDetail(crop); setPhase('detail'); }
@@ -180,7 +183,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setPhase('closing');
   };
 
-  // ── MASTER QUICK REPLY HANDLER ──
+  // ── MASTER QUICK REPLY HANDLER ────────────────────────────────────────────────
   const handleQuickReply = (value: string) => {
     if (isLoading) return;
     if (phase === 'ringkasan') {
@@ -224,7 +227,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     }
   };
 
-  // ── RENDER ──
+  // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
@@ -248,10 +251,10 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Phase 1: Welcome Form — input nama + gender + submit */}
+      {/* Phase 1: Welcome Form — compact, bottom-fixed style ───────────────────── */}
       {phase === 'welcome' && (
-        <div className="p-4 border-t border-white/10">
-          <div className="bg-white/5 rounded-xl p-4 space-y-3">
+        <div className="shrink-0 p-3 border-t border-white/10 bg-black/20">
+          <div className="space-y-2">
             <input
               type="text"
               value={formName}
@@ -261,22 +264,25 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
             />
             <div className="flex gap-2">
               <button
-                onClick={() => setFormGender('laki')}
-                className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${formGender === 'laki' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'}`}
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormGender('laki'); }}
+                className={`flex-1 py-1.5 text-xs rounded-lg border transition-colors ${formGender === 'laki' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'}`}
               >
                 Laki-laki
               </button>
               <button
-                onClick={() => setFormGender('perempuan')}
-                className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${formGender === 'perempuan' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'}`}
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormGender('perempuan'); }}
+                className={`flex-1 py-1.5 text-xs rounded-lg border transition-colors ${formGender === 'perempuan' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10'}`}
               >
                 Perempuan
               </button>
             </div>
             <button
-              onClick={handleFormSubmit}
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleFormSubmit(); }}
               disabled={!formName.trim()}
-              className="w-full py-2.5 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+              className="w-full py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
             >
               Mulai Konsultasi
             </button>
@@ -284,9 +290,9 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         </div>
       )}
 
-      {/* Quick Replies — all phases except welcome (welcome has its own form) */}
+      {/* Quick Replies — ALL phases except welcome ──────────────────────────────── */}
       {phase !== 'welcome' && quickReplies.length > 0 && (
-        <div className="px-4 pb-2 flex flex-wrap gap-2">
+        <div className="shrink-0 px-4 pb-2 flex flex-wrap gap-2">
           {quickReplies.map((reply) => (
             <button key={reply.value} onClick={() => handleQuickReply(reply.value)} disabled={isLoading}
               className="px-3 py-1.5 text-xs rounded-full border border-white/20 text-white/80 hover:bg-white/10 hover:border-emerald-400/50 transition-colors disabled:opacity-40">
@@ -296,7 +302,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         </div>
       )}
 
-      {/* NO TEXT INPUT — complete bot-lead, all interactions via quick replies */}
+      {/* NO TEXT INPUT — complete bot-lead ───────────────────────────────────────── */}
     </div>
   );
 }
