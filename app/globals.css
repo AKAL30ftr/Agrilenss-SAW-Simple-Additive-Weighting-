@@ -12,7 +12,7 @@
 
 @layer base {
   body {
-    @apply bg-[#0b0f10] text-[#e0e3e5] antialiased min-h-screen flex flex-col font-body;
+    @apply bg-[#0b0f10] text-[#e0e3e5] antialiased flex flex-col font-body;
     background-image: radial-gradient(circle at top left, #101415, #0b0f10);
   }
   h1, h2, h3, h4, h5, h6 {
