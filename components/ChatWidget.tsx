@@ -1,11 +1,11 @@
 'use client';
-
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Bot } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import type { FlowPhase, FaqView, Message, StoredUserData } from '@/lib/chat/types';
 import { STORAGE_KEY, PARAM_ORDER, PARAM_LABELS } from '@/lib/chat/constants';
 import { extractOutOfRangeParams, AnimatedDots } from '@/lib/chat/helpers';
-import { welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage, confirmingMessage } from '@/lib/chat/content/messages';
+import { welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage, confirmingMessage, resultMessage, allEliminatedMessage, detailMessage, loadingMessage } from '@/lib/chat/content/messages';
 import { getQuickReplies } from '@/lib/chat/content/quick-replies';
 import { PREFERENCE_OPTIONS, MAX_PREFERENCE_SELECTION, handleTogglePreference } from '@/lib/chat/phases/preference';
 import type { CollectionState } from '@/lib/chat/phases/types';
@@ -141,20 +141,22 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── PHASE 5-6: PREFERENCE → LOADING → RESULT ─────────────────────────────────
   const proceedWithCalculation = async (params: Record<string, unknown>, preferences?: string[]) => {
     setIsLoading(true); setShowPreferences(false);
-    addMessages([{ role: 'assistant', content: 'Terima kasih atas kesabarannya. Hasil perhitungan sedang disusun...' }]);
+    addMessages([{ role: 'assistant', content: loadingMessage(userName, userGender) }]);
     try {
       const res = await fetch('/api/recommend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ collectedParams: params, preferences }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal memproses');
       setSurvivingCrops(data.surviving || []); setEliminatedCrops(data.eliminated || []);
       setOutOfRangeParams(extractOutOfRangeParams(data.eliminated || [])); setDarkHorse(data.darkHorse || []);
-      if (data.allEliminated) { addMessages([{ role: 'assistant', content: data.message }]); setPhase('done'); }
-      else if (data.surviving?.length > 0) {
+      if (data.allEliminated) {
+        addMessages([{ role: 'assistant', content: allEliminatedMessage(userName, userGender, data.eliminated.map((e: { name: string; reasons: string[] }) => ({ name: e.name, reasons: e.reasons }))) }]);
+        setPhase('done');
+      } else if (data.surviving?.length > 0) {
         if (preferences && preferences.length > 0) {
           setPhase('done');
-          const s = userGender === 'perempuan' ? 'Ibu' : 'Pak';
-          const rankedList = data.surviving.map((c: { name: string; score: string }, i: number) => `${i + 1}. ${c.name}: ${c.score}`).join('\n');
-          addMessages([{ role: 'assistant', content: `${s} ${userName}, berikut hasil rekomendasi saya:\n\n${rankedList}` }]);
+          const surviving = data.surviving.map((c: { name: string; score: string; explanation?: string }) => ({ name: c.name, score: c.score, explanation: c.explanation }));
+          const eliminated = data.eliminated.map((e: { name: string; reasons: string[] }) => ({ name: e.name, reasons: e.reasons }));
+          addMessages([{ role: 'assistant', content: resultMessage(userName, userGender, surviving, eliminated) }]);
         } else {
           setShowPreferences(true); setPhase('preference');
           const cropList = data.surviving.map((c: { name: string }) => c.name).join(', ');
@@ -179,7 +181,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── PHASE 6: RESULT ──────────────────────────────────────────────────────────
   const handleLihatDetail = (cropName: string) => {
     const crop = survivingCrops.find((c) => c.name === cropName);
-    if (crop) { setSelectedCropDetail(crop); setPhase('detail'); addMessages([{ role: 'user', content: `Lihat detail ${cropName}` }, { role: 'assistant', content: `${crop.name} — Detail Analisis\n\nSkor: ${crop.score}\n\n${crop.explanation || 'Detail analisis untuk tanaman ini.'}` }]); }
+    if (crop) { setSelectedCropDetail(crop); setPhase('detail'); addMessages([{ role: 'user', content: `Lihat detail ${cropName}` }, { role: 'assistant', content: detailMessage(crop.name, crop.score, crop.explanation) }]); }
   };
   const handleKembaliKeHasil = () => { setSelectedCropDetail(null); setPhase('done'); };
   const handleUlangi = () => {
@@ -205,25 +207,39 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-[#0b141a]">
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      {/* Messages — scrollable with bottom padding */}
+      <div className="flex-1 overflow-y-auto p-3 pb-[15%] space-y-2">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />}
-            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-[#1f2c33] text-white/90 rounded-tl-none'}`}>{msg.content}</div>
+            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-[#1f2c33] text-white/90 rounded-tl-none'}`}>
+              {msg.role === 'assistant' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : msg.content}
+            </div>
           </div>
         ))}
         {isLoading && (<div className="flex justify-start"><Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" /><div className="bg-[#1f2c33] rounded-lg rounded-tl-none px-3 py-2 text-sm text-white/50"><AnimatedDots /></div></div>)}
         <div ref={messagesEndRef} />
       </div>
+      {/* Quick Replies — floating below last message, no background block */}
       {phase !== 'welcome' && quickReplies.length > 0 && (
-        <div className="shrink-0 px-3 py-2 bg-[#1f2c33] border-t border-white/5 flex flex-wrap gap-2">
+        <div className="shrink-0 px-3 py-2 flex flex-wrap gap-2 justify-center">
           {quickReplies.map((reply) => {
             const isPrefSelected = phase === 'preference' && selectedPreferences.includes(reply.value);
             const isPrefDisabled = phase === 'preference' && !selectedPreferences.includes(reply.value) && selectedPreferences.length >= MAX_PREFERENCE_SELECTION && reply.value !== '__PREF_HITUNG_RANKING__';
-            return (<button key={reply.value} onClick={() => handleQuickReply(reply.value)} disabled={isLoading || isPrefDisabled} className={`px-3 py-1.5 text-xs rounded-full border ${isPrefSelected ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-[#3b4a54] text-[#8696a0] hover:bg-[#2a3942] hover:border-emerald-500/50 hover:text-white'} disabled:opacity-30`}>{reply.label}</button>);
+            const isSubmit = reply.value.includes('HITUNG') || reply.value.includes('MULAI') || reply.value === '__PREF_HITUNG_RANKING__';
+            const isEscape = reply.value === '__ESCAPE_KURANG_YAKIN__';
+            const isSecondary = reply.value.includes('ULANGI') || reply.value.includes('KEMBALI') || reply.value.includes('BERANDA');
+            let btnClass = 'px-3 py-2 text-sm rounded-full border ';
+            if (isPrefSelected) btnClass += 'bg-emerald-600 border-emerald-500 text-white ';
+            else if (isSubmit) btnClass += 'bg-blue-600 border-blue-500 text-white ';
+            else if (isEscape) btnClass += 'bg-amber-600/20 border-amber-500 text-amber-300 ';
+            else if (isSecondary) btnClass += 'bg-transparent border-[#3b4a54] text-[#8696a0] ';
+            else btnClass += 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 ';
+            return (<button key={reply.value} onClick={() => handleQuickReply(reply.value)} disabled={isLoading || isPrefDisabled} className={btnClass + 'disabled:opacity-30'}>{reply.label}</button>);
           })}
         </div>
       )}
+      {/* Phase 1: Welcome Form — BOTTOM */}
       {phase === 'welcome' && (
         <div className="shrink-0 p-3 bg-[#1f2c33] border-t border-white/5">
           <div className="space-y-2">
