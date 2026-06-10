@@ -21,7 +21,7 @@ export function formatCropRanking(crops: Array<{ name: string; explanation?: str
 export function formatEliminatedSection(eliminated: Array<{ name: string; reasons: string[] }>): string {
   if (eliminated.length === 0) return '';
   const header = `Sayangnya, dari 6 jenis tanaman, ${eliminated.length} tidak lolos:`;
-  const items = eliminated.map((e) => `• ${e.name}: ${e.reasons[0]}`).join('\n');
+  const items = eliminated.map((e) => `- ${e.name}: ${e.reasons[0]}`).join('\n');
   return `${header}\n${items}`;
 }
 

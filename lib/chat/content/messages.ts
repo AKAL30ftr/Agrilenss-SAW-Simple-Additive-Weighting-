@@ -36,20 +36,20 @@ export function ringkasanMessage(name: string, gender: Sapaan | ''): string {
     '',
     'Saya akan tanyakan 5 kondisi lahan:',
     '',
-    '• Ketinggian tempat',
-    '• Curah hujan',
-    '• Kondisi tanah (keasaman)',
-    '• Tekstur tanah',
-    '• Sinar matahari',
+    '- Ketinggian tempat',
+    '- Curah hujan',
+    '- Kondisi tanah (keasaman)',
+    '- Tekstur tanah',
+    '- Sinar matahari',
     '',
     'Dari 6 jenis tanaman:',
     '',
-    '• 🌾 Padi',
-    '• 🌽 Jagung',
-    '• 🫘 Kedelai',
-    '• 🌶️ Cabai Merah',
-    '• 🧅 Bawang Merah',
-    '• 🧄 Bawang Putih',
+    '- 🌾 Padi',
+    '- 🌽 Jagung',
+    '- 🫘 Kedelai',
+    '- 🌶️ Cabai Merah',
+    '- 🧅 Bawang Merah',
+    '- 🧄 Bawang Putih',
     '',
     'Saya akan saring mana yang cocok dengan lahan Anda. Misalnya, kalau lahan ${s} di dataran rendah dengan curah hujan tinggi, kemungkinan besar Padi dan Jagung akan lolos.',
     '',
@@ -57,11 +57,11 @@ export function ringkasanMessage(name: string, gender: Sapaan | ''): string {
     '',
     'Tanaman yang cocok akan dihitung keuntungannya berdasarkan:',
     '',
-    '• Biaya produksi',
-    '• Harga jual',
-    '• Hasil panen per hektar',
-    '• Risiko gagal panen',
-    '• Permintaan pasar',
+    '- Biaya produksi',
+    '- Harga jual',
+    '- Hasil panen per hektar',
+    '- Risiko gagal panen',
+    '- Permintaan pasar',
     '',
     '---',
     '',
@@ -113,42 +113,42 @@ export function kurangYakinFallback(param: string, name: string, gender: Sapaan 
     'ketinggian': [
       `Tidak masalah, ${s} ${name}. Coba perhatikan suhu di lahan ${s}.`,
       '',
-      '• Kalau **terik dan panas**, biasanya dataran rendah (0-400 meter)',
-      '• Kalau **agak sejuk**, dataran sedang (400-700 meter)',
-      '• Kalau **dingin dan berembus angin**, biasanya pegunungan (700 meter ke atas)',
+      '- Kalau **terik dan panas**, biasanya dataran rendah (0-400 meter)',
+      '- Kalau **agak sejuk**, dataran sedang (400-700 meter)',
+      '- Kalau **dingin dan berembus angin**, biasanya pegunungan (700 meter ke atas)',
       '',
       `Perkiraan kasar sudah cukup, ${s}.`,
     ].join('\n'),
     'curah hujan': [
       `Tidak masalah, ${s} ${name}. Coba ingat-ingat, dalam sebulan terakhir:`,
       '',
-      '• Kalau **hampir setiap hari** hujan, berarti curah hujan tinggi',
-      '• Kalau **seminggu sekali atau kurang**, berarti rendah',
+      '- Kalau **hampir setiap hari** hujan, berarti curah hujan tinggi',
+      '- Kalau **seminggu sekali atau kurang**, berarti rendah',
       '',
       `Perkiraan kasar sudah cukup, ${s}.`,
     ].join('\n'),
     'pH tanah': [
       `Tidak masalah, ${s} ${name}. Coba perhatikan tanaman di lahan ${s}:`,
       '',
-      '• Kalau **daun sering menguning** atau tanaman kerdil, kemungkinan tanah asam',
-      '• Kalau **tumbuh hijau dan subur**, kemungkinan tanah netral',
+      '- Kalau **daun sering menguning** atau tanaman kerdil, kemungkinan tanah asam',
+      '- Kalau **tumbuh hijau dan subur**, kemungkinan tanah netral',
       '',
       `Perkiraan kasar sudah cukup, ${s}.`,
     ].join('\n'),
     'tekstur tanah': [
       `Tidak masalah, ${s} ${name}. Coba ambil tanah di lahan ${s}, lalu basahi sedikit:`,
       '',
-      '• Kalau terasa **lengket dan bisa dibentuk**, berarti tanah liat',
-      '• Kalau terasa **halus dan gembur**, berarti lempung',
-      '• Kalau terasa **kasar seperti pasir**, berarti tanah berpasir',
+      '- Kalau terasa **lengket dan bisa dibentuk**, berarti tanah liat',
+      '- Kalau terasa **halus dan gembur**, berarti lempung',
+      '- Kalau terasa **kasar seperti pasir**, berarti tanah berpasir',
       '',
       `Perkiraan kasar sudah cukup, ${s}.`,
     ].join('\n'),
     'intensitas cahaya': [
       `Tidak masalah, ${s} ${name}. Coba perhatikan, dari pagi sampai sore:`,
       '',
-      '• Kalau ada **pohon besar atau bangunan** yang menghalangi, biasanya 6-8 jam',
-      '• Kalau **terbuka**, bisa 10-12 jam',
+      '- Kalau ada **pohon besar atau bangunan** yang menghalangi, biasanya 6-8 jam',
+      '- Kalau **terbuka**, bisa 10-12 jam',
       '',
       `Perkiraan kasar sudah cukup, ${s}.`,
     ].join('\n'),
@@ -177,7 +177,7 @@ export function paramRecapLine(param: string, value: string): string {
     'tekstur tanah': { emoji: '🤲', label: 'Tekstur tanah' },
     'intensitas cahaya': { emoji: '☀️', label: 'Intensitas cahaya' },
   };
-  const c = config[param] || { emoji: '•', label: param };
+  const c = config[param] || { emoji: '-', label: param };
   return `${c.emoji} **${c.label}:** ${value}`;
 }
 
@@ -208,7 +208,7 @@ export function filter1ResultMessage(
     lines.push(`Sayangnya, **${eliminated.length} tanaman tidak cocok** dengan kondisi lahan:`);
     lines.push('');
     eliminated.forEach(crop => {
-      lines.push(`• **${crop.name}**: ${crop.reasons[0] || 'Kondisi lahan kurang cocok'}`);
+      lines.push(`- **${crop.name}**: ${crop.reasons[0] || 'Kondisi lahan kurang cocok'}`);
     });
     lines.push('');
   }
@@ -243,11 +243,11 @@ export function filter2PrefMessage(
     const emoji = EMOJI[crop.name] || '🌱';
     lines.push(`${emoji} **${crop.name}**`);
     lines.push('');
-    lines.push(`• Biaya Produksi: ${crop.biaya}`);
-    lines.push(`• Harga Jual: ${crop.harga}`);
-    lines.push(`• Produktivitas: ${crop.produktivitas}`);
-    lines.push(`• Risiko: ${crop.risiko}`);
-    lines.push(`• Permintaan: ${crop.permintaan}`);
+    lines.push(`- Biaya Produksi: ${crop.biaya}`);
+    lines.push(`- Harga Jual: ${crop.harga}`);
+    lines.push(`- Produktivitas: ${crop.produktivitas}`);
+    lines.push(`- Risiko: ${crop.risiko}`);
+    lines.push(`- Permintaan: ${crop.permintaan}`);
     lines.push('');
   });
 
@@ -289,9 +289,9 @@ export function filter2ResultMessage(
         'risiko': 'Risiko',
         'permintaan': 'Permintaan',
       };
-      lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
+      lines.push(`- ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
     });
-    lines.push(`• **Total Skor: ${crop.score} dari 100**`);
+    lines.push(`- **Total Skor: ${crop.score} dari 100**`);
     lines.push('');
 
     // Generate brief interpretation based on breakdown
@@ -318,7 +318,7 @@ export function filter2ResultMessage(
     lines.push('');
     lines.push(`Sayangnya, **${eliminated.length} tanaman** tidak cocok dengan lahan:`);
     lines.push('');
-    eliminated.forEach(c => { lines.push(`• **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
+    eliminated.forEach(c => { lines.push(`- **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
     lines.push('');
   }
   if (preferences.length > 0) {
@@ -351,7 +351,7 @@ export function allEliminatedMessage(name: string, gender: Sapaan | '', eliminat
     'Berdasarkan kondisi yang diberikan, **semua tanaman tidak cocok**:',
     '',
   ];
-  eliminated.forEach(c => { lines.push(`• **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
+  eliminated.forEach(c => { lines.push(`- **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
   lines.push('');
   lines.push('**Saran:** Perbaiki drainase, lakukan pengapuran jika tanah terlalu asam, atau konsultasikan dengan penyuluh setempat.');
   lines.push('');
@@ -379,7 +379,7 @@ export function detailMessage(cropName: string, score: string, explanation?: str
     lines.push('');
     lines.push('**Rincian Skor:**');
     Object.entries(breakdown).forEach(([key, val]) => {
-      lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
+      lines.push(`- ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
     });
 
     // Generate recommendation based on breakdown
