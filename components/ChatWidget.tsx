@@ -35,7 +35,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [eliminatedCrops, setEliminatedCrops] = useState<Array<{ name: string; reasons: string[] }>>([]);
   const [outOfRangeParams, setOutOfRangeParams] = useState<string[]>([]);
-  const [survivingCrops, setSurvivingCrops] = useState<Array<{ name: string; score: string; normalizedValues?: Record<string, number>; explanation?: string }>>([]);
+  const [survivingCrops, setSurvivingCrops] = useState<Array<{ name: string; score: string; normalizedValues?: Record<string, number>; breakdown?: Record<string, { score: number; label: string }>; explanation?: string }>>([]);
   const [selectedCropDetail, setSelectedCropDetail] = useState<{ name: string; score: string } | null>(null);
   const [darkHorse, setDarkHorse] = useState<Array<{ cropName: string; totalProximity: number; failReasons: string[]; advice: string }>>([]);
   const [faqSection, setFaqSection] = useState<string | null>(null);
@@ -241,7 +241,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── PHASE 6: RESULT ──────────────────────────────────────────────────────────
   const handleLihatDetail = (cropName: string) => {
     const crop = survivingCrops.find((c) => c.name === cropName);
-    if (crop) { setSelectedCropDetail(crop); setPhase('detail'); addMessages([{ role: 'user', content: `Lihat detail ${cropName}` }, { role: 'assistant', content: detailMessage(crop.name, crop.score, crop.explanation) }]); }
+    if (crop) { setSelectedCropDetail(crop); setPhase('detail'); addMessages([{ role: 'user', content: `Lihat detail ${cropName}` }, { role: 'assistant', content: detailMessage(crop.name, crop.score, crop.explanation, crop.breakdown) }]); }
   };
   const handleKembaliKeHasil = () => { setSelectedCropDetail(null); setPhase('done'); };
   const handleUlangi = () => {

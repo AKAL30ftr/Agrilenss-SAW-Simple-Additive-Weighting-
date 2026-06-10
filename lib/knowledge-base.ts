@@ -958,30 +958,22 @@ export function rankBySAW(
   // ── Dynamic weight adjustment based on user preferences ──
   // Preference label → SAW criterion id mapping
   const preferenceToCriterion: Record<string, string> = {
-    'biaya_produksi': 'biaya_produksi',
-    'harga_jual': 'harga_jual',
-    'produktivitas': 'produktivitas',
-    'risiko': 'risiko',
-    'permintaan': 'permintaan',
+    'pref_biaya': 'biaya_produksi',
+    'pref_harga': 'harga_jual',
+    'pref_produktivitas': 'produktivitas',
+    'pref_risiko': 'risiko',
+    'pref_permintaan': 'permintaan',
   };
-  const adjustableCriterionIds = Object.values(preferenceToCriterion);
+  const PREFERENCE_MULTIPLIER = 1.5; // ×1.5 "sangat penting" per SPK.md KF09
   const adjustedCriteria: Criterion[] = sawCriteria.map((c) => ({ ...c }));
   if (preferences && preferences.length > 0) {
     const selectedIds = preferences
       .map((p) => preferenceToCriterion[p])
       .filter((id): id is string => id !== undefined);
     if (selectedIds.length > 0) {
-      const nonSelectedIds = adjustableCriterionIds.filter((id) => !selectedIds.includes(id));
-      const bonusPerSelected = 0.05 * selectedIds.length;
-      const totalReduction = bonusPerSelected;
-      const reductionPerNonSelected = nonSelectedIds.length > 0
-        ? totalReduction / nonSelectedIds.length
-        : 0;
       for (const c of adjustedCriteria) {
         if (selectedIds.includes(c.id)) {
-          c.weight += 0.05;
-        } else if (nonSelectedIds.includes(c.id)) {
-          c.weight = Math.max(0.01, c.weight - reductionPerNonSelected);
+          c.weight *= PREFERENCE_MULTIPLIER;
         }
       }
       // Renormalize to ensure weights sum to 1.0

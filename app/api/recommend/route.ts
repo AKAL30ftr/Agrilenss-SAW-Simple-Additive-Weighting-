@@ -18,6 +18,37 @@ import {
 import { SAWEngine } from '@/lib/saw/engine';
 import { generateAdvisorAnswer } from '@/lib/ai/advisor';
 
+type BreakdownKey = 'biaya' | 'harga' | 'produktivitas' | 'risiko' | 'permintaan';
+type Breakdown = Record<BreakdownKey, { score: number; label: string }>;
+
+const breakdownCriterionMap: Record<string, BreakdownKey> = {
+  biaya_produksi: 'biaya',
+  harga_jual: 'harga',
+  produktivitas: 'produktivitas',
+  risiko: 'risiko',
+  permintaan: 'permintaan',
+};
+
+function scoreLabel(score: number): string {
+  switch (score) {
+    case 5: return 'Sangat baik';
+    case 4: return 'Baik';
+    case 3: return 'Cukup';
+    case 2: return 'Kurang';
+    default: return 'Rendah';
+  }
+}
+
+function buildBreakdown(normalizedValues: Record<string, number>): Breakdown {
+  const breakdown = {} as Breakdown;
+  for (const [criterionId, key] of Object.entries(breakdownCriterionMap)) {
+    const norm = normalizedValues[criterionId] ?? 0;
+    const score = Math.max(1, Math.min(5, Math.round(norm * 5)));
+    breakdown[key] = { score, label: scoreLabel(score) };
+  }
+  return breakdown;
+}
+
 interface RateEntry { count: number; resetTime: number; }
 const rateMap = new Map<string, RateEntry>();
 const RATE_LIMIT = 30;
@@ -171,7 +202,7 @@ export async function POST(request: NextRequest) {
     return withCors(NextResponse.json({
       message: aiMessage ?? fallbackMessage, mode,
       eliminated: filter1.eliminated.map((e) => ({ name: e.cropName, reasons: e.failReasons })),
-      surviving: sawResults.map((r) => ({ name: r.name, score: r.preferenceScore.toFixed(3), normalizedValues: r.normalizedValues, explanation: r.explanation })),
+      surviving: sawResults.map((r) => ({ name: r.name, score: r.preferenceScore.toFixed(3), normalizedValues: r.normalizedValues, breakdown: buildBreakdown(r.normalizedValues), explanation: r.explanation })),
       darkHorse: filter1.darkHorse.map((dh) => ({ cropName: dh.cropName, totalProximity: dh.totalProximity, failReasons: dh.failReasons, advice: dh.advice })),
       missingParams: [], followUpQuestion: null, userValues: parsed, retrievedContext: [], budgetWarning: apiBudgetWarning,
     }));

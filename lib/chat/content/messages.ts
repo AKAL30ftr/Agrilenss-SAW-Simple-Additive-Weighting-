@@ -235,7 +235,7 @@ export function filter2PrefMessage(
   lines.push('');
   lines.push(`Untuk menentukan ranking, saya perlu tahu **prioritas** ${s}.`);
   lines.push('');
-  lines.push(`_Mana yang lebih penting? ${s} bisa pilih **sampai 5**._`);
+  lines.push(`_Mana yang lebih penting? ${s} bisa pilih **sampai 3**._`);
   return lines.join('\n');
 }
 
@@ -319,15 +319,30 @@ export function allEliminatedMessage(name: string, gender: Sapaan | '', eliminat
   return lines.join('\n');
 }
 
-export function detailMessage(cropName: string, score: string, explanation?: string): string {
+export function detailMessage(cropName: string, score: string, explanation?: string, breakdown?: Record<string, { score: number; label: string }>): string {
   const emoji = EMOJI[cropName] || '🌱';
-  return [
+  const lines: string[] = [
     `${emoji} **${cropName}** — Detail Analisis`,
     '',
     `**Skor**: ${score}`,
     '',
     explanation || 'Detail analisis untuk tanaman ini.',
-  ].join('\n');
+  ];
+  if (breakdown && Object.keys(breakdown).length > 0) {
+    const criterionLabels: Record<string, string> = {
+      'biaya': 'Biaya Produksi',
+      'harga': 'Harga Jual',
+      'produktivitas': 'Produktivitas',
+      'risiko': 'Risiko',
+      'permintaan': 'Permintaan',
+    };
+    lines.push('');
+    lines.push('**Breakdown Skor:**');
+    Object.entries(breakdown).forEach(([key, val]) => {
+      lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
+    });
+  }
+  return lines.join('\n');
 }
 
 // ─── Phase 7: Closing ─────────────────────────────────────────────────────────
