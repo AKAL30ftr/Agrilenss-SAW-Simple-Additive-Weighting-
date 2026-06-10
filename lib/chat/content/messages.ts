@@ -365,9 +365,18 @@ export function detailMessage(cropName: string, score: string, explanation?: str
     `${emoji} **${cropName}** — Detail Analisis`,
     '',
     `**Skor**: ${score} dari 100`,
-    '',
-    explanation || 'Detail analisis untuk tanaman ini.',
   ];
+
+  // Only show explanation if it's user-friendly (not API internal text)
+  const isApiInternal = explanation && (
+    explanation.includes('relevansi') ||
+    explanation.includes('NLP') ||
+    explanation.includes('skor SAW')
+  );
+  if (explanation && !isApiInternal) {
+    lines.push('');
+    lines.push(explanation);
+  }
   if (breakdown && Object.keys(breakdown).length > 0) {
     const criterionLabels: Record<string, string> = {
       'biaya': 'Biaya Produksi',
