@@ -257,7 +257,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── MASTER QUICK REPLY HANDLER ────────────────────────────────────────────────
   const handleQuickReply = (value: string, label?: string) => {
     if (isLoading) return;
-    if (label && (phase === 'collecting' || phase === 'faq' || phase === 'filter1_result' || phase === 'filter2_pref')) {
+    if (label && (phase === 'collecting' || phase === 'faq' || phase === 'filter1_result')) {
       addMessages([{ role: 'user', content: label }]);
     }
     if (phase === 'ringkasan') { if (value === '__RINGKASAN_LANJUT__') handleRingkasanLanjut(); else if (value === '__RINGKASAN_FAQ__') handleShowFaqCategories(); }
@@ -297,8 +297,8 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         {phase !== 'welcome' && quickReplies.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1 pb-3">
             {quickReplies.map((reply) => {
-              const isPrefSelected = phase === 'preference' && selectedPreferences.includes(reply.value);
-              const isPrefDisabled = phase === 'preference' && !selectedPreferences.includes(reply.value) && selectedPreferences.length >= MAX_PREFERENCE_SELECTION && reply.value !== '__PREF_HITUNG_RANKING__';
+              const isPrefSelected = phase === 'filter2_pref' && selectedPreferences.includes(reply.value);
+              const isPrefDisabled = phase === 'filter2_pref' && !selectedPreferences.includes(reply.value) && selectedPreferences.length >= MAX_PREFERENCE_SELECTION && reply.value !== '__PREF_HITUNG_RANKING__';
               const isSubmit = reply.value.includes('HITUNG') || reply.value === '__PREF_HITUNG_RANKING__';
               const isEscape = reply.value === '__ESCAPE_KURANG_YAKIN__';
               const isSecondary = reply.value.includes('ULANGI') || reply.value.includes('KEMBALI') || reply.value.includes('BERANDA') || reply.value.includes('SELESAI');

@@ -104,7 +104,7 @@ export const PREFERENCE_OPTIONS: PreferenceOption[] = [
   { id: 'pref_permintaan',    label: 'Permintaan pasar tinggi', criterionId: 'permintaan' },
 ];
 // ─── Max preference selection ─────────────────────────────────────────────────
-export const MAX_PREFERENCE_SELECTION = 5; // Semua 5 parameter bisa dipilih
+export const MAX_PREFERENCE_SELECTION = 3; // Maksimal 3 preferensi
 // ─── Parameter → FAQ mapping (for all-crops-eliminated flow) ─────────────────
 export const PARAM_TO_FAQ: Record<string, { sectionId: string; itemId: string; label: string }> = {
   'pH tanah':            { sectionId: 'faq-params', itemId: 'param-ph',              label: 'Pelajari cara memperbaiki pH tanah' },
