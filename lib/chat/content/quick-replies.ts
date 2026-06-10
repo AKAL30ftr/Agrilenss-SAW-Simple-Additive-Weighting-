@@ -1,4 +1,5 @@
 import type { QuickReply } from '../types';
+import { FAQ_CONTENT } from './faq-content';
 
 // ── Phase 2: Ringkasan ────────────────────────────────────────────────────────
 export const RINGKASAN_REPLIES: QuickReply[] = [
@@ -7,13 +8,25 @@ export const RINGKASAN_REPLIES: QuickReply[] = [
 ];
 
 export const FAQ_REPLIES: QuickReply[] = [
-  { label: 'Tentang cara kerja sistem', value: 'faq-sistem' },
-  { label: 'Tentang jenis tanaman', value: 'faq-crops' },
-  { label: 'Tentang kondisi lahan', value: 'faq-params' },
-  { label: 'Tentang Filter 1 (lingkungan)', value: 'faq-filter1' },
-  { label: 'Tentang Filter 2 (keuntungan)', value: 'faq-filter2' },
+  { label: 'Tentang Sistem', value: 'cat_sistem' },
+  { label: 'Tentang Komoditas', value: 'cat_komoditas' },
+  { label: 'Tentang Kondisi Lingkungan', value: 'cat_lingkungan' },
+  { label: 'Tentang Filter 1 — Lingkungan', value: 'cat_filter1' },
+  { label: 'Tentang Filter 2 — Keuntungan', value: 'cat_filter2' },
   { label: 'Kembali ke konsultasi', value: '__FAQ_KEMBALI__' },
 ];
+export function getFaqQuestionReplies(sectionId: string): QuickReply[] {
+  const section = FAQ_CONTENT.find(s => s.id === sectionId);
+  if (!section) return [];
+  const items = section.items.map(item => ({
+    label: item.question,
+    value: item.id,
+  }));
+  return [
+    ...items,
+    { label: 'Kembali ke FAQ', value: '__FAQ_BACK__' },
+  ];
+}
 
 // ── Phase 3: Collecting (per parameter) ────────────────────────────────────────
 export const PARAM_REPLIES: Record<string, QuickReply[]> = {

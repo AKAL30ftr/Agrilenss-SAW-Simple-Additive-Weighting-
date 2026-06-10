@@ -40,6 +40,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [selectedCropDetail, setSelectedCropDetail] = useState<{ name: string; score: string } | null>(null);
   const [darkHorse, setDarkHorse] = useState<Array<{ cropName: string; totalProximity: number; failReasons: string[]; advice: string }>>([]);
   const [faqView, setFaqView] = useState<FaqView>('none');
+  const [faqSection, setFaqSection] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const msgIdCounter = useRef(0);
@@ -102,22 +103,35 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
 
   const handleShowFaqCategories = () => {
     setPhase('faq');
+    setFaqSection(null);
     const sections = FAQ_CONTENT.map(s => `• ${s.title}`);
     addMessages([{ role: 'assistant', content: `Baik, apa yang ingin ditanyakan?\n\n${sections.join('\n')}\n\n• Kembali ke konsultasi` }]);
   };
-  // ── PHASE 2A: FAQ ─────────────────────────────────────────────────────────────
   const handleFaqAction = (value: string) => {
-    if (value === '__FAQ_KEMBALI__') { setPhase('ringkasan'); addMessages([{ role: 'assistant', content: ringkasanMessage(userName, userGender) }]); return; }
-    // Check if it's a section selection
+    if (value === '__FAQ_KEMBALI__') {
+      setPhase('ringkasan');
+      setFaqSection(null);
+      addMessages([{ role: 'assistant', content: ringkasanMessage(userName, userGender) }]);
+      return;
+    }
+    if (value === '__FAQ_BACK__') {
+      setFaqSection(null);
+      const sections = FAQ_CONTENT.map(s => `• ${s.title}`);
+      addMessages([{ role: 'assistant', content: `Baik, apa yang ingin ditanyakan?\n\n${sections.join('\n')}\n\n• Kembali ke konsultasi` }]);
+      return;
+    }
+    // Check if it's a category selection
     const section = FAQ_CONTENT.find(s => s.id === value);
     if (section) {
+      setFaqSection(value);
       const items = section.items.map(i => `• ${i.question}`);
       addMessages([{ role: 'assistant', content: `**${section.title}**\n\n${items.join('\n')}\n\n• Kembali ke FAQ` }]);
       return;
     }
-    // Check if it's a specific question
-    for (const section of FAQ_CONTENT) {
-      const item = section.items.find(i => i.id === value);
+    // Check if it's a question selection
+    if (faqSection) {
+      const section = FAQ_CONTENT.find(s => s.id === faqSection);
+      const item = section?.items.find(i => i.id === value);
       if (item) {
         addMessages([{ role: 'assistant', content: `**${item.question}**\n\n${item.answer}\n\n• Kembali ke FAQ` }]);
         return;
