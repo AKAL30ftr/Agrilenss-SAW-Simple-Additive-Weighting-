@@ -235,7 +235,7 @@ export function filter2PrefMessage(
     '',
     'Angka-angka berikut akan menentukan **ranking keuntungan** masing-masing tanaman.',
     '',
-    'Semakin tinggi skor di setiap kriteria, semakin menguntungkan tanaman tersebut untuk ${s} tanam.',
+    `Semakin tinggi skor di setiap kriteria, semakin menguntungkan tanaman tersebut untuk ${s} tanam.`,
     '',
   ];
 
@@ -323,11 +323,11 @@ export function filter2ResultMessage(
   }
   if (preferences.length > 0) {
     const prefLabels: Record<string, string> = {
-      'biaya': 'Biaya produksi rendah',
-      'harga': 'Harga jual tinggi',
-      'produktivitas': 'Produktivitas tinggi',
-      'risiko': 'Risiko rendah',
-      'permintaan': 'Permintaan pasar tinggi',
+      'pref_biaya': 'Biaya produksi rendah',
+      'pref_harga': 'Harga jual tinggi',
+      'pref_produktivitas': 'Produktivitas tinggi',
+      'pref_risiko': 'Risiko rendah',
+      'pref_permintaan': 'Permintaan pasar tinggi',
     };
     lines.push('---');
     lines.push('');
