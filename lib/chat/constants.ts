@@ -1,6 +1,6 @@
 /**
  * Chat widget constants — structural only.
- * Content (messages, quick replies, tooltips) moved to lib/chat/content/.
+ * Content (messages, quick replies) moved to lib/chat/content/.
  */
 import type { PreferenceOption } from './types';
 // ─── localStorage key ─────────────────────────────────────────────────────────
