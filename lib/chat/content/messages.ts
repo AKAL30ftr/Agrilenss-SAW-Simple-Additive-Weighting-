@@ -33,17 +33,28 @@ export function ringkasanMessage(name: string, gender: Sapaan | ''): string {
     '**Tahap 1 — Kesesuaian Lahan**',
     '',
     'Saya akan tanyakan 5 kondisi lahan:',
+    '',
     '• Ketinggian tempat',
     '• Curah hujan',
     '• Kondisi tanah (keasaman)',
     '• Tekstur tanah',
     '• Sinar matahari',
     '',
-    'Dari 6 jenis tanaman — 🌾 Padi, 🌽 Jagung, 🫘 Kedelai, 🌶️ Cabai, 🧅 Bawang Merah, 🧄 Bawang Putih — saya akan saring mana yang cocok.',
+    'Dari 6 jenis tanaman:',
+    '',
+    '• 🌾 Padi',
+    '• 🌽 Jagung',
+    '• 🫘 Kedelai',
+    '• 🌶️ Cabai Merah',
+    '• 🧅 Bawang Merah',
+    '• 🧄 Bawang Putih',
+    '',
+    'Saya akan saring mana yang cocok dengan lahan Anda.',
     '',
     '**Tahap 2 — Perhitungan Keuntungan**',
     '',
     'Tanaman yang cocok akan dihitung keuntungannya berdasarkan:',
+    '',
     '• Biaya produksi',
     '• Harga jual',
     '• Hasil panen per hektar',
@@ -190,6 +201,7 @@ export function filter1ResultMessage(
     lines.push('---');
     lines.push('');
     lines.push(`Sayangnya, **${eliminated.length} tanaman tidak cocok** dengan kondisi lahan:`);
+    lines.push('');
     eliminated.forEach(crop => {
       lines.push(`• **${crop.name}**: ${crop.reasons[0] || 'Kondisi lahan kurang cocok'}`);
     });
@@ -223,6 +235,7 @@ export function filter2PrefMessage(
   surviving.forEach(crop => {
     const emoji = EMOJI[crop.name] || '🌱';
     lines.push(`${emoji} **${crop.name}**`);
+    lines.push('');
     lines.push(`• Biaya Produksi: ${crop.biaya}`);
     lines.push(`• Harga Jual: ${crop.harga}`);
     lines.push(`• Produktivitas: ${crop.produktivitas}`);
@@ -277,6 +290,7 @@ export function filter2ResultMessage(
     lines.push('---');
     lines.push('');
     lines.push(`Sayangnya, **${eliminated.length} tanaman** tidak cocok dengan lahan:`);
+    lines.push('');
     eliminated.forEach(c => { lines.push(`• **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
     lines.push('');
   }
