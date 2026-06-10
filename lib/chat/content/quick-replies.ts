@@ -76,6 +76,13 @@ export const FILTER1_RESULT_REPLIES: QuickReply[] = [
   { label: 'Konsultasi ulang', value: '__FILTER1_ULANGI__' },
 ];
 
+// ── Phase: filter2_summary ─────────────────────────────────────────────────────
+export const FILTER2_SUMMARY_REPLIES: QuickReply[] = [
+  { label: 'Lanjut hitung ranking', value: '__FILTER2_LANJUT__' },
+  { label: 'Cukup, tampilkan rekomendasi', value: '__FILTER2_CUKUP__' },
+  { label: 'Konsultasi ulang', value: '__FILTER2_ULANGI__' },
+];
+
 // ── Phase: filter2_pref ────────────────────────────────────────────────────────
 export const FILTER2_PREF_REPLIES: QuickReply[] = [
   { label: 'Biaya produksi rendah', value: 'pref_biaya' },
@@ -121,6 +128,7 @@ export function getQuickReplies(phase: string, collectionState?: { currentParamI
     return FAQ_REPLIES;
   }
   if (phase === 'filter1_result') return FILTER1_RESULT_REPLIES;
+  if (phase === 'filter2_summary') return FILTER2_SUMMARY_REPLIES;
   if (phase === 'filter2_pref') return FILTER2_PREF_REPLIES;
   if (phase === 'confirming') return CONFIRMING_REPLIES;
   if (phase === 'done') return survivingCrops ? getResultReplies(survivingCrops) : [];

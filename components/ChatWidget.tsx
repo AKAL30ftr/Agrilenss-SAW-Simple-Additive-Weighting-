@@ -203,7 +203,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   };
   // ── Filter 1 Result Handler ────────────────────────────────────────────────────
   const handleFilter1Lanjut = () => {
-    setPhase('filter2_pref');
+    setPhase('filter2_summary');
     const surviving = survivingCrops.map((c: { name: string }) => {
       const econ = ECONOMIC_DATA[c.name];
       if (!econ) {
@@ -223,6 +223,18 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const handleFilter1Cukup = () => {
     setPhase('done');
     addMessages([{ role: 'assistant', content: `Baik, ${userName}! Berdasarkan analisis kesesuaian lingkungan, berikut rekomendasi saya:\n\n${survivingCrops.map((c: { name: string }, i: number) => `${i + 1}. **${c.name}**`).join('\n')}\n\nSemoga rekomendasi ini membantu, ${sap(userGender)}!` }]);
+  };
+  // ── Filter 2 Summary Handlers ─────────────────────────────────────────────────
+  const handleFilter2SummaryLanjut = () => {
+    setPhase('filter2_pref');
+    addMessages([{ role: 'user', content: 'Lanjut hitung ranking' }, { role: 'assistant', content: `Baik, ${userName}! Sekarang saya perlu tahu prioritas ${sap(userGender)} untuk menentukan ranking.\n\nMana yang lebih penting? ${sap(userGender)} bisa pilih sampai 3.` }]);
+  };
+  const handleFilter2SummaryCukup = () => {
+    setPhase('done');
+    addMessages([{ role: 'assistant', content: `Baik, ${userName}! Berdasarkan analisis kesesuaian lingkungan, berikut rekomendasi saya:\n\n${survivingCrops.map((c: { name: string }, i: number) => `${i + 1}. **${c.name}**`).join('\n')}\n\nSemoga rekomendasi ini membantu, ${sap(userGender)}!` }]);
+  };
+  const handleFilter2SummaryUlangi = () => {
+    handleUlangi();
   };
   // ── Filter 2 Preference Handler ───────────────────────────────────────────────
   const handleFilter2PrefSubmit = () => {
@@ -253,7 +265,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── MASTER QUICK REPLY HANDLER ────────────────────────────────────────────────
   const handleQuickReply = (value: string, label?: string) => {
     if (isLoading) return;
-    if (label && (phase === 'collecting' || phase === 'faq' || phase === 'filter1_result')) {
+    if (label && (phase === 'collecting' || phase === 'faq' || phase === 'filter1_result' || phase === 'filter2_summary')) {
       addMessages([{ role: 'user', content: label }]);
     }
     if (phase === 'ringkasan') { if (value === '__RINGKASAN_LANJUT__') handleRingkasanLanjut(); else if (value === '__RINGKASAN_FAQ__') handleShowFaqCategories(); }
@@ -264,6 +276,11 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       if (value === '__FILTER1_LANJUT__') handleFilter1Lanjut();
       else if (value === '__FILTER1_CUKUP__') handleFilter1Cukup();
       else if (value === '__FILTER1_ULANGI__') handleUlangi();
+    }
+    else if (phase === 'filter2_summary') {
+      if (value === '__FILTER2_LANJUT__') handleFilter2SummaryLanjut();
+      else if (value === '__FILTER2_CUKUP__') handleFilter2SummaryCukup();
+      else if (value === '__FILTER2_ULANGI__') handleFilter2SummaryUlangi();
     }
     else if (phase === 'filter2_pref') {
       if (value === '__PREF_HITUNG_RANKING__') handleFilter2PrefSubmit();

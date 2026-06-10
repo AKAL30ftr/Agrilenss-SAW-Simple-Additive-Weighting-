@@ -10,6 +10,7 @@ export type FlowPhase =
   | 'collecting'
   | 'confirming'
   | 'filter1_result'
+  | 'filter2_summary'
   | 'filter2_pref'
   | 'detail'
   | 'done'
