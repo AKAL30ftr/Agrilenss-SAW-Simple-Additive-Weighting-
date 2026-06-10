@@ -15,7 +15,9 @@ export function welcomeMessage(): string {
   return [
     'Halo, selamat datang di Agri-SAW Pro! 🌾',
     '',
-    'Saya asisten virtual yang akan membantu Bapak/Ibu memilih tanaman terbaik untuk lahan.',
+    'Saya asisten virtual yang dibuat khusus untuk membantu petani memilih tanaman terbaik sesuai kondisi lahan masing-masing.',
+    '',
+    'Saya diharapkan bisa jadi teman diskusi Bapak/Ibu dalam mengambil keputusan: **tanaman apa yang paling cocok dan menguntungkan** untuk ditanam.',
     '',
     'Sebelum mulai, silakan isi data diri dulu ya.',
   ].join('\n');
@@ -49,7 +51,7 @@ export function ringkasanMessage(name: string, gender: Sapaan | ''): string {
     '• 🧅 Bawang Merah',
     '• 🧄 Bawang Putih',
     '',
-    'Saya akan saring mana yang cocok dengan lahan Anda.',
+    'Saya akan saring mana yang cocok dengan lahan Anda. Misalnya, kalau lahan ${s} di dataran rendah dengan curah hujan tinggi, kemungkinan besar Padi dan Jagung akan lolos.',
     '',
     '**Tahap 2 — Perhitungan Keuntungan**',
     '',
@@ -162,6 +164,8 @@ export function confirmingMessage(name: string, gender: Sapaan | ''): string {
     `Baik, ${s} ${name}! Semua data lahan sudah terkumpul.`,
     '',
     'Silakan periksa dulu, apakah data di bawah ini sudah benar:',
+    '',
+    'Kalau ada yang belum sesuai, silakan pilih **Ubah Data** untuk memperbaiki.',
   ].join('\n');
 }
 
@@ -192,7 +196,8 @@ export function filter1ResultMessage(
 
   surviving.forEach(crop => {
     const emoji = EMOJI[crop.name] || '🌱';
-    lines.push(`${emoji} **${crop.name}** — ${crop.score}`);
+    const scoreNum = parseInt(crop.score, 10) || 0;
+    lines.push(`${emoji} **${crop.name}** — ${crop.score} (Skor: ${scoreNum}/100)`);
     lines.push(crop.matchDetails);
     lines.push('');
   });
@@ -228,7 +233,9 @@ export function filter2PrefMessage(
   const lines: string[] = [
     `Baik, ${s}! 📊`,
     '',
-    'Berikut data ekonomi untuk masing-masing tanaman:',
+    'Angka-angka berikut akan menentukan **ranking keuntungan** masing-masing tanaman.',
+    '',
+    'Semakin tinggi skor di setiap kriteria, semakin menguntungkan tanaman tersebut untuk ${s} tanam.',
     '',
   ];
 
@@ -243,7 +250,7 @@ export function filter2PrefMessage(
     lines.push(`• Permintaan: ${crop.permintaan}`);
     lines.push('');
   });
-  lines.push('');
+
   lines.push('---');
   lines.push('');
   lines.push(`Untuk menentukan ranking, saya perlu tahu **prioritas** ${s}.`);
@@ -269,6 +276,7 @@ export function filter2ResultMessage(
   surviving.slice(0, 3).forEach((crop, i) => {
     const emoji = EMOJI[crop.name] || '🌱';
     const label = labels[i] || `**Peringkat ${i + 1}**`;
+    const scoreNum = parseInt(crop.score, 10) || 0;
     lines.push(`${emoji} **${crop.name}** — ${label}`);
     lines.push(`Skor: ${crop.score} dari 100`);
     lines.push('');
@@ -285,6 +293,25 @@ export function filter2ResultMessage(
     });
     lines.push(`• **Total Skor: ${crop.score} dari 100**`);
     lines.push('');
+
+    // Generate brief interpretation based on breakdown
+    const topCriteria = Object.entries(crop.breakdown)
+      .sort(([, a], [, b]) => b.score - a.score)
+      .slice(0, 2)
+      .map(([key]) => {
+        const criterionLabels: Record<string, string> = {
+          'biaya': 'biaya produksi rendah',
+          'harga': 'harga jual tinggi',
+          'produktivitas': 'produktivitas tinggi',
+          'risiko': 'risiko gagal panen rendah',
+          'permintaan': 'permintaan pasar tinggi',
+        };
+        return criterionLabels[key] || key;
+      });
+    if (topCriteria.length > 0) {
+      lines.push(`*Tanaman ini unggul karena ${topCriteria.join(' dan ')}.*`);
+      lines.push('');
+    }
   });
   if (eliminated.length > 0) {
     lines.push('---');
@@ -328,7 +355,7 @@ export function allEliminatedMessage(name: string, gender: Sapaan | '', eliminat
   lines.push('');
   lines.push('**Saran:** Perbaiki drainase, lakukan pengapuran jika tanah terlalu asam, atau konsultasikan dengan penyuluh setempat.');
   lines.push('');
-  lines.push(`Mau coba dengan kondisi lain, ${s}?`);
+  lines.push(`Jangan berkecil hati, ${s}. Kondisi lahan bisa diperbaiki. Mau coba dengan kondisi lain?`);
   return lines.join('\n');
 }
 
@@ -354,6 +381,25 @@ export function detailMessage(cropName: string, score: string, explanation?: str
     Object.entries(breakdown).forEach(([key, val]) => {
       lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
     });
+
+    // Generate recommendation based on breakdown
+    const topCriterion = Object.entries(breakdown)
+      .sort(([, a], [, b]) => b.score - a.score)[0];
+    if (topCriterion) {
+      const [topKey] = topCriterion;
+      const recommendations: Record<string, string> = {
+        'biaya': 'Cocok untuk Anda yang mengutamakan biaya rendah',
+        'harga': 'Pilihan baik jika Anda mengutamakan harga jual tinggi',
+        'produktivitas': 'Ideal untuk Anda yang menginginkan hasil panen melimpah',
+        'risiko': 'Cocok untuk Anda yang lebih memilih keamanan dari gagal panen',
+        'permintaan': 'Bagus untuk Anda yang mengutamakan kemudahan menjual hasil panen',
+      };
+      const rec = recommendations[topKey];
+      if (rec) {
+        lines.push('');
+        lines.push(`*${rec}.*`);
+      }
+    }
   }
   return lines.join('\n');
 }
@@ -367,11 +413,11 @@ export function closingMessage(name: string, gender: Sapaan | ''): string {
     '',
     `Semoga rekomendasi ini membantu ${s} menentukan tanaman terbaik untuk lahan.`,
     '',
-    `Kalau ada pertanyaan lain atau mau konsultasi ulang, jangan sungkan ya, ${s}.`,
+    'Ingat, ini baru langkah awal. Keputusan tetap di tangan Bapak/Ibu yang lebih memahami kondisi lapangan.',
     '',
-    `Kalau hasil ini dirasa kurang sesuai, ${s} juga bisa konsultasikan dengan penyuluh pertanian di daerah ${s} untuk pendalaman lebih lanjut.`,
+    `Kalau hasil ini dirasa kurang sesuai, ${s} bisa coba lagi dengan data yang berbeda, atau konsultasikan dengan penyuluh pertanian di daerah ${s} untuk pendalaman lebih lanjut.`,
     '',
-    `Mau konsultasi ulang atau ada pertanyaan lain, ${s}?`,
+    `Sampai jumpa lagi, ${s}. Selamat bertani! 🌱`,
   ].join('\n');
 }
 
