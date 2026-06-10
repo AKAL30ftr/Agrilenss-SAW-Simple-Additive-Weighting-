@@ -313,7 +313,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />}
             <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-[#1f2c33] text-white/90 rounded-tl-none'}`}>
-              {msg.role === 'assistant' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : msg.content}
+              {msg.role === 'assistant' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <span className="whitespace-pre-line">{msg.content}</span>}
             </div>
           </div>
         ))}
@@ -321,16 +321,6 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         {/* Quick Replies — INSIDE scroll area, directly after last bubble */}
         {phase !== 'welcome' && quickReplies.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1 pb-3 items-center">
-            {/* Tooltip info button for collecting phase */}
-            {phase === 'collecting' && activeTooltip && (
-              <button
-                onClick={() => setActiveTooltip(activeTooltip ? null : TOOLTIPS[PARAM_ORDER[collectionState.currentParamIndex]] || null)}
-                className={`px-2.5 py-2 text-sm rounded-full border transition-all duration-150 cursor-pointer ${activeTooltip ? 'bg-amber-600/20 border-amber-500 text-amber-300' : 'bg-transparent border-[#3b4a54] text-[#8696a0] hover:bg-[#2a3942] hover:text-white'}`}
-                title="Kenapa parameter ini ditanyakan?"
-              >
-                ℹ️
-              </button>
-            )}
             {quickReplies.map((reply) => {
               const isPrefSelected = phase === 'filter2_pref' && selectedPreferences.includes(reply.value);
               const isPrefDisabled = phase === 'filter2_pref' && !selectedPreferences.includes(reply.value) && selectedPreferences.length >= MAX_PREFERENCE_SELECTION && reply.value !== '__PREF_HITUNG_RANKING__';

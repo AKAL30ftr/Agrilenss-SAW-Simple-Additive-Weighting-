@@ -1057,13 +1057,18 @@ export function runFullPipeline(input: string): FullRecommendationResult {
       }, sawResults[0]);
       const cheapestProfile = cropProfiles[cheapest.alternativeId];
       const maxArea = cheapestProfile ? parsed.budget / cheapestProfile.economic.biayaProduksi : 0;
-      budgetWarning =
-        `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk luas ${parsed.landArea} ha pada semua komoditas yang direkomendasikan.\n\n` +
-        `💡 Saran: Kurangi luas lahan atau tambah modal. Untuk komoditas paling terjangkau (${cheapest.name}), luas maksimal yang disarankan: ${maxArea.toFixed(2)} ha.`;
+      budgetWarning = [
+        `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk luas ${parsed.landArea} ha pada semua komoditas yang direkomendasikan.`,
+        '',
+        `💡 Saran: Kurangi luas lahan atau tambah modal. Untuk komoditas paling terjangkau (${cheapest.name}), luas maksimal yang disarankan: ${maxArea.toFixed(2)} ha.`,
+      ].join('\n');
     } else if (insufficientCrops.length > 0) {
-      budgetWarning =
-        `⚠️ Peringatan Modal: Untuk luas ${parsed.landArea} ha, modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk: ${insufficientCrops.join(', ')}.\n\n` +
-        `💡 Rekomendasi skala lahan:\n${scaleRecommendations.map((s) => `- ${s}`).join('\n')}`;
+      budgetWarning = [
+        `⚠️ Peringatan Modal: Untuk luas ${parsed.landArea} ha, modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk: ${insufficientCrops.join(', ')}.`,
+        '',
+        `💡 Rekomendasi skala lahan:`,
+        ...scaleRecommendations.map((s) => `• ${s}`),
+      ].join('\n');
     }
   } else if (parsed.budget !== null && parsed.landArea === null && sawResults.length > 0) {
     // Budget provided but no landArea — give per-hectare warnings
@@ -1076,33 +1081,47 @@ export function runFullPipeline(input: string): FullRecommendationResult {
       }
     }
     if (insufficientCrops.length === sawResults.length) {
-      budgetWarning =
-        `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar pada semua komoditas yang direkomendasikan.\n\n` +
-        `💡 Saran: Tambah modal atau pertimbangkan komoditas dengan biaya produksi lebih rendah.`;
+      budgetWarning = [
+        `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar pada semua komoditas yang direkomendasikan.`,
+        '',
+        `💡 Saran: Tambah modal atau pertimbangkan komoditas dengan biaya produksi lebih rendah.`,
+      ].join('\n');
     } else if (insufficientCrops.length > 0) {
-      budgetWarning =
-        `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar: ${insufficientCrops.join(', ')}.\n\n` +
-        `💡 Komoditas lain dalam ranking tetap layak dipertimbangkan.`;
+      budgetWarning = [
+        `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk biaya produksi per hektar: ${insufficientCrops.join(', ')}.`,
+        '',
+        `💡 Komoditas lain dalam ranking tetap layak dipertimbangkan.`,
+      ].join('\n');
     }
   }
 
   // Build message
   let message: string;
   if (filter1.allEliminated) {
-    message =
-      '😔 Berdasarkan kondisi yang Anda berikan, sayangnya tidak ada komoditas dari daftar kami yang cocok.\n\nSaran: coba perbaiki drainase atau pertimbangkan jenis tanah lain.';
+    message = [
+      '😔 Berdasarkan kondisi yang Anda berikan, sayangnya tidak ada komoditas dari daftar kami yang cocok.',
+      '',
+      'Saran: coba perbaiki drainase atau pertimbangkan jenis tanah lain.',
+    ].join('\n');
   } else {
     const top = sawResults[0];
     const eliminatedNames = filter1.eliminated.map(
       (e) => `${e.cropName} (${e.failReasons[0]})`
     );
-    message = `🌾 Rekomendasi utama: ${top.name} (skor SAW: ${top.preferenceScore.toFixed(3)})\n\n`;
+    message = [
+      `🌾 Rekomendasi utama: ${top.name} (skor SAW: ${top.preferenceScore.toFixed(3)})`,
+      '',
+    ];
 
     if (eliminatedNames.length > 0) {
-      message += `❌ Dieliminasikan:\n${eliminatedNames.map((n) => `- ${n}`).join('\n')}\n\n`;
+      message.push(`❌ Dieliminasikan:`);
+      eliminatedNames.forEach((n) => message.push(`• ${n}`));
+      message.push('');
     }
 
-    message += `📊 Ranking:\n${sawResults.map((r, i) => `${i + 1}. ${r.name}: ${r.preferenceScore.toFixed(3)}`).join('\n')}\n\n`;
+    message.push(`📊 Ranking:`);
+    sawResults.forEach((r, i) => message.push(`${i + 1}. ${r.name}: ${r.preferenceScore.toFixed(3)}`));
+    message.push('');
 
     if (budgetWarning) {
       message += `\n${budgetWarning}\n\n`;

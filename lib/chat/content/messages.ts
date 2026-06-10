@@ -51,7 +51,7 @@ export function ringkasanMessage(name: string, gender: Sapaan | ''): string {
     '• 🧅 Bawang Merah',
     '• 🧄 Bawang Putih',
     '',
-    'Saya akan saring mana yang cocok dengan lahan Anda. Misalnya, kalau lahan ${s} di dataran rendah dengan curah hujan tinggi, kemungkinan besar Padi dan Jagung akan lolos.',
+    `Saya akan saring mana yang cocok dengan lahan Anda. Misalnya, kalau lahan ${s} di dataran rendah dengan curah hujan tinggi, kemungkinan besar Padi dan Jagung akan lolos.`,
     '',
     '**Tahap 2 — Perhitungan Keuntungan**',
     '',
@@ -63,9 +63,7 @@ export function ringkasanMessage(name: string, gender: Sapaan | ''): string {
     '• Risiko gagal panen',
     '• Permintaan pasar',
     '',
-    '---',
-    '',
-    `Ada yang ingin ditanyakan dulu, atau langsung mulai?`,
+    'Ada yang ingin ditanyakan dulu, atau langsung mulai?',
   ].join('\n');
 }
 
@@ -243,11 +241,11 @@ export function filter2PrefMessage(
     const emoji = EMOJI[crop.name] || '🌱';
     lines.push(`${emoji} **${crop.name}**`);
     lines.push('');
-    lines.push(`• Biaya Produksi: ${crop.biaya}`);
-    lines.push(`• Harga Jual: ${crop.harga}`);
-    lines.push(`• Produktivitas: ${crop.produktivitas}`);
-    lines.push(`• Risiko: ${crop.risiko}`);
-    lines.push(`• Permintaan: ${crop.permintaan}`);
+    lines.push(`Biaya Produksi: ${crop.biaya}`);
+    lines.push(`Harga Jual: ${crop.harga}`);
+    lines.push(`Produktivitas: ${crop.produktivitas}`);
+    lines.push(`Risiko: ${crop.risiko}`);
+    lines.push(`Permintaan: ${crop.permintaan}`);
     lines.push('');
   });
 
@@ -289,9 +287,9 @@ export function filter2ResultMessage(
         'risiko': 'Risiko',
         'permintaan': 'Permintaan',
       };
-      lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
+      lines.push(`${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
     });
-    lines.push(`• **Total Skor: ${crop.score} dari 100**`);
+    lines.push(`**Total Skor: ${crop.score} dari 100**`);
     lines.push('');
 
     // Generate brief interpretation based on breakdown
@@ -388,7 +386,7 @@ export function detailMessage(cropName: string, score: string, explanation?: str
     lines.push('');
     lines.push('**Rincian Skor:**');
     Object.entries(breakdown).forEach(([key, val]) => {
-      lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
+      lines.push(`${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
     });
 
     // Generate recommendation based on breakdown

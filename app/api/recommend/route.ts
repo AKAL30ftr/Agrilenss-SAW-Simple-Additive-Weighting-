@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
 
     // ── All eliminated ──
     if (filter1.allEliminated) {
-      const eliminationDetails = filter1.eliminated.map((e) => `- ${e.cropName}: ${e.failReasons.join('; ')}`).join('\n');
+      const eliminationDetails = filter1.eliminated.map((e) => `• ${e.cropName}: ${e.failReasons.join('; ')}`).join('\n');
       const message = [
         '😔 Berdasarkan kondisi yang Anda berikan, sayangnya semua komoditas dieliminasikan:',
         '', eliminationDetails,
@@ -169,7 +169,12 @@ export async function POST(request: NextRequest) {
         const maxArea = cheapestProfile ? parsed.budget / cheapestProfile.economic.biayaProduksi : 0;
         apiBudgetWarning = `⚠️ Peringatan Modal: Modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk luas ${parsed.landArea} ha pada semua komoditas.\n\n💡 Saran: Kurangi luas lahan atau tambah modal. Untuk ${cheapest.name} (paling terjangkau), luas maksimal: ${maxArea.toFixed(2)} ha.`;
       } else if (insufficient.length > 0) {
-        apiBudgetWarning = `⚠️ Peringatan Modal: Untuk luas ${parsed.landArea} ha, modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk: ${insufficient.join(', ')}.\n\n💡 Rekomendasi skala lahan:\n${scaleRecs.map((s) => `- ${s}`).join('\n')}`;
+        apiBudgetWarning = [
+          `⚠️ Peringatan Modal: Untuk luas ${parsed.landArea} ha, modal Anda (Rp ${parsed.budget.toLocaleString('id-ID')}) belum mencukupi untuk: ${insufficient.join(', ')}.`,
+          '',
+          `💡 Rekomendasi skala lahan:`,
+          ...scaleRecs.map((s) => `• ${s}`),
+        ].join('\n');
       }
     }
 
