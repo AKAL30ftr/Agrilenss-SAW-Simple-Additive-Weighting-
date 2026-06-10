@@ -257,7 +257,7 @@ export function filter2ResultMessage(
     const emoji = EMOJI[crop.name] || '🌱';
     const label = labels[i] || `**Peringkat ${i + 1}**`;
     lines.push(`${emoji} **${crop.name}** — ${label}`);
-    lines.push(`Skor: ${crop.score}`);
+    lines.push(`Skor: ${crop.score} dari 100`);
     lines.push('');
     // Breakdown per kriteria
     lines.push('**Breakdown Skor:**');
@@ -271,7 +271,7 @@ export function filter2ResultMessage(
       };
       lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
     });
-    lines.push(`• **Total Skor SAW: ${crop.score}**`);
+    lines.push(`• **Total Skor SAW: ${crop.score} dari 100**`);
     lines.push('');
   });
   if (eliminated.length > 0) {
@@ -324,7 +324,7 @@ export function detailMessage(cropName: string, score: string, explanation?: str
   const lines: string[] = [
     `${emoji} **${cropName}** — Detail Analisis`,
     '',
-    `**Skor**: ${score}`,
+    `**Skor**: ${score} dari 100`,
     '',
     explanation || 'Detail analisis untuk tanaman ini.',
   ];

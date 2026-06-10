@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
     return withCors(NextResponse.json({
       message: aiMessage ?? fallbackMessage, mode,
       eliminated: filter1.eliminated.map((e) => ({ name: e.cropName, reasons: e.failReasons })),
-      surviving: sawResults.map((r) => ({ name: r.name, score: r.preferenceScore.toFixed(3), normalizedValues: r.normalizedValues, breakdown: buildBreakdown(r.normalizedValues), explanation: r.explanation })),
+      surviving: sawResults.map((r) => ({ name: r.name, score: (r.preferenceScore * 100).toFixed(2), normalizedValues: r.normalizedValues, breakdown: buildBreakdown(r.normalizedValues), explanation: r.explanation })),
       darkHorse: filter1.darkHorse.map((dh) => ({ cropName: dh.cropName, totalProximity: dh.totalProximity, failReasons: dh.failReasons, advice: dh.advice })),
       missingParams: [], followUpQuestion: null, userValues: parsed, retrievedContext: [], budgetWarning: apiBudgetWarning,
     }));

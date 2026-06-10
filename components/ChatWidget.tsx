@@ -314,7 +314,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
               const isPrefDisabled = phase === 'filter2_pref' && !selectedPreferences.includes(reply.value) && selectedPreferences.length >= MAX_PREFERENCE_SELECTION && reply.value !== '__PREF_HITUNG_RANKING__';
               const isSubmit = reply.value.includes('HITUNG') || reply.value === '__PREF_HITUNG_RANKING__';
               const isEscape = reply.value === '__ESCAPE_KURANG_YAKIN__';
-              const isSecondary = reply.value.includes('ULANGI') || reply.value.includes('KEMBALI') || reply.value.includes('BERANDA') || reply.value.includes('SELESAI');
+              const isSecondary = reply.value.includes('ULANGI') || reply.value.includes('KEMBALI') || reply.value.includes('BERANDA') || reply.value.includes('SELESAI') || reply.value === '__FAQ_BACK__';
               let btnClass = 'px-3 py-2 text-sm rounded-full border transition-all duration-150 cursor-pointer hover:scale-105 hover:shadow-lg active:scale-95 ';
               if (isPrefSelected) btnClass += 'bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-500 ';
               else if (isSubmit) btnClass += 'bg-blue-600 border-blue-500 text-white hover:bg-blue-500 hover:shadow-blue-500/30 ';
