@@ -76,7 +76,8 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const quickReplies = getQuickReplies(
     phase === 'faq' ? 'faq' : phase,
     collectionState,
-    survivingCrops
+    survivingCrops,
+    faqSection
   );
 
   // ── PHASE 1: FORM SUBMIT ─────────────────────────────────────────────────────

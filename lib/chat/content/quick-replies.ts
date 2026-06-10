@@ -113,9 +113,13 @@ export const CLOSING_REPLIES: QuickReply[] = [
 ];
 
 // ── Helper: get quick replies for any phase ────────────────────────────────────
-export function getQuickReplies(phase: string, collectionState?: { currentParamIndex: number }, survivingCrops?: Array<{ name: string }>): QuickReply[] {
+export function getQuickReplies(phase: string, collectionState?: { currentParamIndex: number }, survivingCrops?: Array<{ name: string }>, faqSection?: string | null): QuickReply[] {
   if (phase === 'ringkasan') return RINGKASAN_REPLIES;
-  if (phase === 'faq') return FAQ_REPLIES;
+  if (phase === 'faq') {
+    // Multi-level FAQ: show question-level buttons when a section is selected
+    if (faqSection) return getFaqQuestionReplies(faqSection);
+    return FAQ_REPLIES;
+  }
   if (phase === 'filter1_result') return FILTER1_RESULT_REPLIES;
   if (phase === 'filter2_pref') return FILTER2_PREF_REPLIES;
   if (phase === 'confirming') return CONFIRMING_REPLIES;
