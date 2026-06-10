@@ -9,10 +9,10 @@ export const RINGKASAN_REPLIES: QuickReply[] = [
 
 export const FAQ_REPLIES: QuickReply[] = [
   { label: 'Tentang Sistem', value: 'cat_sistem' },
-  { label: 'Tentang Komoditas', value: 'cat_komoditas' },
-  { label: 'Tentang Kondisi Lingkungan', value: 'cat_lingkungan' },
-  { label: 'Tentang Filter 1 — Lingkungan', value: 'cat_filter1' },
-  { label: 'Tentang Filter 2 — Keuntungan', value: 'cat_filter2' },
+  { label: 'Tentang Tanaman', value: 'cat_komoditas' },
+  { label: 'Tentang Kondisi Lahan', value: 'cat_lingkungan' },
+  { label: 'Tentang Tahap 1 — Kesesuaian Lahan', value: 'cat_filter1' },
+  { label: 'Tentang Tahap 2 — Keuntungan', value: 'cat_filter2' },
   { label: 'Kembali', value: '__FAQ_KEMBALI__' },
 ];
 export function getFaqQuestionReplies(sectionId: string): QuickReply[] {
@@ -31,9 +31,9 @@ export function getFaqQuestionReplies(sectionId: string): QuickReply[] {
 // ── Phase 3: Collecting (per parameter) ────────────────────────────────────────
 export const PARAM_REPLIES: Record<string, QuickReply[]> = {
   'ketinggian': [
-    { label: 'Dataran rendah (0-400 mdpl)', value: 'ketinggian rendah' },
-    { label: 'Dataran sedang (400-700 mdpl)', value: 'ketinggian sedang' },
-    { label: 'Pegunungan (700+ mdpl)', value: 'ketinggian tinggi' },
+    { label: 'Dataran rendah (0-400 meter)', value: 'ketinggian rendah' },
+    { label: 'Dataran sedang (400-700 meter)', value: 'ketinggian sedang' },
+    { label: 'Pegunungan (700+ meter)', value: 'ketinggian tinggi' },
     { label: 'Saya kurang yakin', value: '__ESCAPE_KURANG_YAKIN__' },
   ],
   'curah hujan': [
@@ -71,7 +71,7 @@ export const CONFIRMING_REPLIES: QuickReply[] = [
 
 // ── Phase: filter1_result ──────────────────────────────────────────────────────
 export const FILTER1_RESULT_REPLIES: QuickReply[] = [
-  { label: 'Lanjut analisis keuntungan', value: '__FILTER1_LANJUT__' },
+  { label: 'Lanjut hitung keuntungan', value: '__FILTER1_LANJUT__' },
   { label: 'Cukup, tampilkan rekomendasi', value: '__FILTER1_CUKUP__' },
   { label: 'Konsultasi ulang', value: '__FILTER1_ULANGI__' },
 ];

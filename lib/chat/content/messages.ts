@@ -13,11 +13,11 @@ const EMOJI: Record<string, string> = {
 
 export function welcomeMessage(): string {
   return [
-    'Halo! Selamat datang di Agri-SAW Pro. 🌾',
+    'Halo, selamat datang di Agri-SAW Pro! 🌾',
     '',
-    'Saya adalah asisten virtual yang akan membantu merekomendasikan komoditas pertanian terbaik untuk lahan Bapak/Ibu.',
+    'Saya asisten virtual yang akan membantu Bapak/Ibu memilih tanaman terbaik untuk lahan.',
     '',
-    'Sebelum mulai, silakan isi data diri dulu ya:',
+    'Sebelum mulai, silakan isi data diri dulu ya.',
   ].join('\n');
 }
 
@@ -28,25 +28,25 @@ export function ringkasanMessage(name: string, gender: Sapaan | ''): string {
   return [
     `Terima kasih, ${s} ${name}! 🌾`,
     '',
-    'Sistem ini menggunakan **2 tahap analisis** untuk memberikan rekomendasi terbaik:',
+    'Saya akan membantu memilih tanaman terbaik menggunakan **2 tahap perhitungan**:',
     '',
-    '**Tahap 1 — Kesesuaian Lingkungan**',
+    '**Tahap 1 — Kesesuaian Lahan**',
     '',
-    'Saya akan menanyakan 5 kondisi lahan:',
+    'Saya akan tanyakan 5 kondisi lahan:',
     '• Ketinggian tempat',
     '• Curah hujan',
-    '• Kondisi tanah (pH)',
+    '• Kondisi tanah (keasaman)',
     '• Tekstur tanah',
-    '• Intensitas cahaya',
+    '• Sinar matahari',
     '',
-    'Dari 6 komoditas — 🌾 Padi, 🌽 Jagung, 🫘 Kedelai, 🌶️ Cabai, 🧅 Bawang Merah, 🧄 Bawang Putih — saya akan saring mana yang cocok dengan lahan Anda.',
+    'Dari 6 jenis tanaman — 🌾 Padi, 🌽 Jagung, 🫘 Kedelai, 🌶️ Cabai, 🧅 Bawang Merah, 🧄 Bawang Putih — saya akan saring mana yang cocok.',
     '',
-    '**Tahap 2 — Analisis Keuntungan**',
+    '**Tahap 2 — Perhitungan Keuntungan**',
     '',
-    'Untuk komoditas yang cocok, saya hitung ranking keuntungannya berdasarkan:',
+    'Tanaman yang cocok akan dihitung keuntungannya berdasarkan:',
     '• Biaya produksi',
     '• Harga jual',
-    '• Produktivitas',
+    '• Hasil panen per hektar',
     '• Risiko gagal panen',
     '• Permintaan pasar',
     '',
@@ -62,14 +62,14 @@ export function collectingQuestion(param: string, name: string, gender: Sapaan |
   const s = sap(gender);
   const questions: Record<string, string> = {
     'ketinggian': [
-      `Baik, ${s} ${name}. Selanjutnya saya ingin tahu soal **ketinggian lahan** ${s}.`,
+      `Baik, ${s} ${name}. Sekarang saya ingin tahu soal **ketinggian lahan**.`,
       '',
-      'Ini penting karena beda ketinggian, beda juga suhu dan jenis tanaman yang bisa tumbuh.',
+      'Ini penting karena beda ketinggian, beda juga suhu udaranya. Tanaman yang cocok di dataran rendah belum tentu cocok di pegunungan.',
       '',
       `Kira-kira lahan ${s} di dataran rendah, sedang, atau pegunungan?`,
     ].join('\n'),
     'curah hujan': [
-      `Oke, selanjutnya saya ingin menanyakan terkait **curah hujan** di lingkungan lokasi ${s}.`,
+      `Oke, selanjutnya soal **curah hujan** di sekitar lahan ${s}.`,
       '',
       'Air adalah kebutuhan utama tanaman, jadi ini salah satu hal yang paling penting.',
       '',
@@ -81,14 +81,14 @@ export function collectingQuestion(param: string, name: string, gender: Sapaan |
       `Ini agak sulit diamati langsung, tapi ${s} pernah tidak melihat tanaman di lahan ${s} sering menguning atau kerdil? Atau tumbuh biasa saja?`,
     ].join('\n'),
     'tekstur tanah': [
-      `Selanjutnya, saya ingin menanyakan tentang **tekstur tanah** di lahan ${s}.`,
+      `Selanjutnya, saya ingin tahu **tekstur tanah** di lahan ${s}.`,
       '',
-      `Cara mudahnya, kalau diambil dan dibasahi, tanah ${s} terasa lengket, gembur, atau kasar seperti pasir?`,
+      `Cara mudahnya: ambil tanah, basahi sedikit, lalu remas. Tanah ${s} terasa lengket, gembur, atau kasar seperti pasir?`,
     ].join('\n'),
     'intensitas cahaya': [
-      `Terakhir, saya ingin menanyakan tentang **paparan sinar matahari** di lahan ${s}.`,
+      `Terakhir, saya ingin tahu soal **sinar matahari** di lahan ${s}.`,
       '',
-      `Kira-kira seberapa lama lahan ${s} terkena sinar matahari langsung setiap harinya?`,
+      `Kira-kira berapa jam lahan ${s} terkena sinar matahari langsung setiap harinya?`,
     ].join('\n'),
   };
   return questions[param] || '';
@@ -100,9 +100,9 @@ export function kurangYakinFallback(param: string, name: string, gender: Sapaan 
     'ketinggian': [
       `Tidak masalah, ${s} ${name}. Coba perhatikan suhu di lahan ${s}.`,
       '',
-      '• Kalau **terik dan panas**, biasanya dataran rendah (0-400 mdpl)',
-      '• Kalau **agak sejuk**, dataran sedang (400-700 mdpl)',
-      '• Kalau **dingin dan berembus angin**, biasanya pegunungan (700+ mdpl)',
+      '• Kalau **terik dan panas**, biasanya dataran rendah (0-400 meter)',
+      '• Kalau **agak sejuk**, dataran sedang (400-700 meter)',
+      '• Kalau **dingin dan berembus angin**, biasanya pegunungan (700 meter ke atas)',
       '',
       `Perkiraan kasar sudah cukup, ${s}.`,
     ].join('\n'),
@@ -132,7 +132,7 @@ export function kurangYakinFallback(param: string, name: string, gender: Sapaan 
       `Perkiraan kasar sudah cukup, ${s}.`,
     ].join('\n'),
     'intensitas cahaya': [
-      `Tidak masalah, ${s} ${name}. Coba perhatikan, pagi sampai sore:`,
+      `Tidak masalah, ${s} ${name}. Coba perhatikan, dari pagi sampai sore:`,
       '',
       '• Kalau ada **pohon besar atau bangunan** yang menghalangi, biasanya 6-8 jam',
       '• Kalau **terbuka**, bisa 10-12 jam',
@@ -175,7 +175,7 @@ export function filter1ResultMessage(
 ): string {
   const s = sap(gender);
   const lines: string[] = [
-    `Berdasarkan kondisi lingkungan lahan ${s}, berikut komoditas yang **paling cocok secara agronomis**: 🌿`,
+    `Berdasarkan kondisi lahan ${s}, berikut tanaman yang **paling cocok**: 🌿`,
     '',
   ];
 
@@ -189,7 +189,7 @@ export function filter1ResultMessage(
   if (eliminated.length > 0) {
     lines.push('---');
     lines.push('');
-    lines.push(`Sayangnya, **${eliminated.length} tanaman tidak lolos** karena kondisi lingkungan:`);
+    lines.push(`Sayangnya, **${eliminated.length} tanaman tidak cocok** dengan kondisi lahan:`);
     eliminated.forEach(crop => {
       lines.push(`• **${crop.name}**: ${crop.reasons[0] || 'Kondisi lahan kurang cocok'}`);
     });
@@ -198,9 +198,9 @@ export function filter1ResultMessage(
 
   lines.push('---');
   lines.push('');
-  lines.push(`Selanjutnya, saya bisa menghitung **ranking keuntungan ekonomi** untuk ${surviving.length} komoditas yang cocok ini.`);
+  lines.push(`Selanjutnya, saya bisa menghitung **ranking keuntungan** untuk ${surviving.length} tanaman yang cocok ini.`);
   lines.push('');
-  lines.push('Dengan mempertimbangkan biaya produksi, harga jual, produktivitas, risiko gagal panen, dan permintaan pasar.');
+  lines.push('Dengan mempertimbangkan biaya produksi, harga jual, hasil panen, risiko gagal, dan permintaan pasar.');
   lines.push('');
   lines.push(`Mau dilanjutkan, ${s}?`);
   return lines.join('\n');
@@ -216,7 +216,7 @@ export function filter2PrefMessage(
   const lines: string[] = [
     `Baik, ${s}! 📊`,
     '',
-    'Berikut data ekonomi untuk masing-masing komoditas:',
+    'Berikut data ekonomi untuk masing-masing tanaman:',
     '',
   ];
 
@@ -235,7 +235,7 @@ export function filter2PrefMessage(
   lines.push('');
   lines.push(`Untuk menentukan ranking, saya perlu tahu **prioritas** ${s}.`);
   lines.push('');
-  lines.push(`_Mana yang lebih penting? ${s} bisa pilih **sampai 3**._`);
+  lines.push(`Mana yang lebih penting? ${s} bisa pilih **sampai 3**.`);
   return lines.join('\n');
 }
 
@@ -249,7 +249,7 @@ export function filter2ResultMessage(
 ): string {
   const s = sap(gender);
   const lines: string[] = [
-    `${s} ${name}, berikut **ranking keuntungan ekonomi** dari komoditas yang cocok dengan lahan ${s}:`,
+    `${s} ${name}, berikut **ranking keuntungan** dari tanaman yang cocok dengan lahan ${s}:`,
     '',
   ];
   const labels = ['**Paling cocok** 🏆', '**Tidak kalah bagus** 👍', '**Dapat dipertimbangkan** 🤔'];
@@ -259,8 +259,7 @@ export function filter2ResultMessage(
     lines.push(`${emoji} **${crop.name}** — ${label}`);
     lines.push(`Skor: ${crop.score} dari 100`);
     lines.push('');
-    // Breakdown per kriteria
-    lines.push('**Breakdown Skor:**');
+    lines.push('**Rincian Skor:**');
     Object.entries(crop.breakdown).forEach(([key, val]) => {
       const criterionLabels: Record<string, string> = {
         'biaya': 'Biaya Produksi',
@@ -271,13 +270,13 @@ export function filter2ResultMessage(
       };
       lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
     });
-    lines.push(`• **Total Skor SAW: ${crop.score} dari 100**`);
+    lines.push(`• **Total Skor: ${crop.score} dari 100**`);
     lines.push('');
   });
   if (eliminated.length > 0) {
     lines.push('---');
     lines.push('');
-    lines.push(`Sayangnya, **${eliminated.length} tanaman** tidak lolos Filter 1:`);
+    lines.push(`Sayangnya, **${eliminated.length} tanaman** tidak cocok dengan lahan:`);
     eliminated.forEach(c => { lines.push(`• **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
     lines.push('');
   }
@@ -291,8 +290,8 @@ export function filter2ResultMessage(
     };
     lines.push('---');
     lines.push('');
-    lines.push(`**Preferensi Anda:** ${preferences.map(p => prefLabels[p] || p).join(', ')}`);
-    lines.push('_Bobot SAW disesuaikan berdasarkan preferensi Anda._');
+    lines.push(`**Prioritas Anda:** ${preferences.map(p => prefLabels[p] || p).join(', ')}`);
+    lines.push('Perhitungan disesuaikan berdasarkan pilihan Bapak/Ibu.');
     lines.push('');
   }
   lines.push('Mau lihat detail salah satu tanaman, atau ada yang ingin ditanyakan?');
@@ -308,12 +307,12 @@ export function allEliminatedMessage(name: string, gender: Sapaan | '', eliminat
   const lines: string[] = [
     `Maaf, ${s} ${name} 😔`,
     '',
-    'Berdasarkan kondisi yang diberikan, **semua komoditas dieliminasikan**:',
+    'Berdasarkan kondisi yang diberikan, **semua tanaman tidak cocok**:',
     '',
   ];
   eliminated.forEach(c => { lines.push(`• **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
   lines.push('');
-  lines.push('💡 **Saran**: Perbaiki drainase, pertimbangkan pengapuran untuk tanah terlalu asam, atau konsultasikan dengan penyuluh setempat.');
+  lines.push('**Saran:** Perbaiki drainase, lakukan pengapuran jika tanah terlalu asam, atau konsultasikan dengan penyuluh setempat.');
   lines.push('');
   lines.push(`Mau coba dengan kondisi lain, ${s}?`);
   return lines.join('\n');
@@ -337,7 +336,7 @@ export function detailMessage(cropName: string, score: string, explanation?: str
       'permintaan': 'Permintaan',
     };
     lines.push('');
-    lines.push('**Breakdown Skor:**');
+    lines.push('**Rincian Skor:**');
     Object.entries(breakdown).forEach(([key, val]) => {
       lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
     });
@@ -352,11 +351,11 @@ export function closingMessage(name: string, gender: Sapaan | ''): string {
   return [
     `Terima kasih, ${s} ${name}, sudah menggunakan Agri-SAW Pro! 🙏`,
     '',
-    `Semoga rekomendasi ini membantu ${s} menentukan tanaman yang terbaik untuk lahan.`,
+    `Semoga rekomendasi ini membantu ${s} menentukan tanaman terbaik untuk lahan.`,
     '',
     `Kalau ada pertanyaan lain atau mau konsultasi ulang, jangan sungkan ya, ${s}.`,
     '',
-    `_Kalau hasil ini dirasa kurang sesuai, ${s} juga bisa konsultasikan dengan penyuluh pertanian di daerah ${s} untuk pendalaman lebih lanjut._`,
+    `Kalau hasil ini dirasa kurang sesuai, ${s} juga bisa konsultasikan dengan penyuluh pertanian di daerah ${s} untuk pendalaman lebih lanjut.`,
     '',
     `Mau konsultasi ulang atau ada pertanyaan lain, ${s}?`,
   ].join('\n');

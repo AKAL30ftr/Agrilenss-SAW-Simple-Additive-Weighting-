@@ -5,7 +5,7 @@ export function handleLanjut(): PhaseResult {
 }
 
 export function handleShowFaqCategories(): PhaseResult {
-  return { messagesToAdd: [{ role: 'assistant', content: 'Baik, apa yang ingin ditanyakan?\n\n• Tentang cara kerja sistem\n• Tentang jenis tanaman\n• Tentang kondisi lahan\n• Kembali ke konsultasi' }], nextPhase: 'faq' };
+  return { messagesToAdd: [{ role: 'assistant', content: 'Baik, apa yang ingin ditanyakan?\n\n• Tentang cara kerja sistem\n• Tentang jenis tanaman\n• Tentang kondisi lahan\n• Tentang tahap kesesuaian lahan\n• Tentang tahap perhitungan keuntungan\n\nAtau kembali ke konsultasi' }], nextPhase: 'faq' };
 }
 
 export function handleBackToRingkasan(): PhaseResult {
