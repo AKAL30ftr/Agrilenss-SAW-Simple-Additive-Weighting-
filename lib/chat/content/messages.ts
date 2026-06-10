@@ -198,12 +198,11 @@ export function filter1ResultMessage(
 
   lines.push('---');
   lines.push('');
-  `Selanjutnya, saya bisa menghitung **ranking keuntungan ekonomi** untuk ${surviving.length} komoditas yang cocok ini.`;
+  lines.push(`Selanjutnya, saya bisa menghitung **ranking keuntungan ekonomi** untuk ${surviving.length} komoditas yang cocok ini.`);
   lines.push('');
-  'Dengan mempertimbangkan biaya produksi, harga jual, produktivitas, risiko gagal panen, dan permintaan pasar.';
+  lines.push('Dengan mempertimbangkan biaya produksi, harga jual, produktivitas, risiko gagal panen, dan permintaan pasar.');
   lines.push('');
-  `Mau dilanjutkan, ${s}?`;
-
+  lines.push(`Mau dilanjutkan, ${s}?`);
   return lines.join('\n');
 }
 
@@ -231,17 +230,14 @@ export function filter2PrefMessage(
     lines.push(`• Permintaan: ${crop.permintaan}`);
     lines.push('');
   });
-
+  lines.push('');
   lines.push('---');
   lines.push('');
-  `Untuk menentukan ranking, saya perlu tahu **prioritas** ${s}.`;
+  lines.push(`Untuk menentukan ranking, saya perlu tahu **prioritas** ${s}.`);
   lines.push('');
-  `_Mana yang lebih penting? ${s} bisa pilih **sampai 3**._`;
-
+  lines.push(`_Mana yang lebih penting? ${s} bisa pilih **sampai 5**._`);
   return lines.join('\n');
 }
-
-// ─── Phase 5: Preference ──────────────────────────────────────────────────────
 
 export function preferenceMessage(name: string, gender: Sapaan | '', survivingCount: number, cropList: string): string {
   const s = sap(gender);
@@ -253,8 +249,66 @@ export function preferenceMessage(name: string, gender: Sapaan | '', survivingCo
     '',
     `Sekarang, untuk menentukan ranking terbaik, saya perlu tahu **prioritas** ${s}.`,
     '',
-    `_Mana yang lebih penting? ${s} bisa pilih **sampai 3**._`,
+    `_Mana yang lebih penting? ${s} bisa pilih **sampai 5**._`,
   ].join('\n');
+}
+// ─── Phase: filter2_result (hasil setelah Filter 2) ────────────────────────────
+export function filter2ResultMessage(
+  name: string, gender: Sapaan | '',
+  surviving: Array<{ name: string; score: string; breakdown: Record<string, { score: number; label: string }> }>,
+  eliminated: Array<{ name: string; reasons: string[] }>,
+  preferences: string[]
+): string {
+  const s = sap(gender);
+  const lines: string[] = [
+    `${s} ${name}, berikut **ranking keuntungan ekonomi** dari komoditas yang cocok dengan lahan ${s}:`,
+    '',
+  ];
+  const labels = ['**Paling cocok** 🏆', '**Tidak kalah bagus** 👍', '**Dapat dipertimbangkan** 🤔'];
+  surviving.slice(0, 3).forEach((crop, i) => {
+    const emoji = EMOJI[crop.name] || '🌱';
+    const label = labels[i] || `**Peringkat ${i + 1}**`;
+    lines.push(`${emoji} **${crop.name}** — ${label}`);
+    lines.push(`Skor: ${crop.score}`);
+    lines.push('');
+    // Breakdown per kriteria
+    lines.push('**Breakdown Skor:**');
+    Object.entries(crop.breakdown).forEach(([key, val]) => {
+      const criterionLabels: Record<string, string> = {
+        'biaya': 'Biaya Produksi',
+        'harga': 'Harga Jual',
+        'produktivitas': 'Produktivitas',
+        'risiko': 'Risiko',
+        'permintaan': 'Permintaan',
+      };
+      lines.push(`• ${criterionLabels[key] || key}: ${val.score}/5 (${val.label})`);
+    });
+    lines.push(`• **Total Skor SAW: ${crop.score}**`);
+    lines.push('');
+  });
+  if (eliminated.length > 0) {
+    lines.push('---');
+    lines.push('');
+    lines.push(`Sayangnya, **${eliminated.length} tanaman** tidak lolos Filter 1:`);
+    eliminated.forEach(c => { lines.push(`• **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
+    lines.push('');
+  }
+  if (preferences.length > 0) {
+    const prefLabels: Record<string, string> = {
+      'biaya': 'Biaya produksi rendah',
+      'harga': 'Harga jual tinggi',
+      'produktivitas': 'Produktivitas tinggi',
+      'risiko': 'Risiko rendah',
+      'permintaan': 'Permintaan pasar tinggi',
+    };
+    lines.push('---');
+    lines.push('');
+    lines.push(`**Preferensi Anda:** ${preferences.map(p => prefLabels[p] || p).join(', ')}`);
+    lines.push('_Bobot SAW disesuaikan berdasarkan preferensi Anda._');
+    lines.push('');
+  }
+  lines.push('Mau lihat detail salah satu tanaman, atau ada yang ingin ditanyakan?');
+  return lines.join('\n');
 }
 
 // ─── Phase 6: Result ──────────────────────────────────────────────────────────

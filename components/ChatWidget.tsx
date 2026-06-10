@@ -8,7 +8,7 @@ import { extractOutOfRangeParams, AnimatedDots } from '@/lib/chat/helpers';
 import {
   welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage,
   confirmingMessage, resultMessage, allEliminatedMessage, detailMessage, loadingMessage,
-  filter1ResultMessage, filter2PrefMessage, paramRecapLine, sap,
+  filter1ResultMessage, filter2PrefMessage, paramRecapLine, sap, filter2ResultMessage,
 } from '@/lib/chat/content/messages';
 import { getQuickReplies } from '@/lib/chat/content/quick-replies';
 import { FAQ_CONTENT } from '@/lib/chat/content/faq-content';
@@ -168,19 +168,21 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setPhase('done');
       } else if (data.surviving?.length > 0) {
         if (preferences && preferences.length > 0) {
-          // Second call: show Filter 2 result
+          // Second call: show Filter 2 result with breakdown
           setPhase('done');
-          const surviving = data.surviving.map((c: { name: string; score: string; explanation?: string }) => ({ name: c.name, score: c.score, explanation: c.explanation }));
+          const surviving = data.surviving.map((c: { name: string; score: string; breakdown?: Record<string, { score: number; label: string }> }) => ({
+            name: c.name, score: c.score, breakdown: c.breakdown || {},
+          }));
           const eliminated = data.eliminated.map((e: { name: string; reasons: string[] }) => ({ name: e.name, reasons: e.reasons }));
-          addMessages([{ role: 'assistant', content: resultMessage(userName, userGender, surviving, eliminated) }]);
+          addMessages([{ role: 'assistant', content: filter2ResultMessage(userName, userGender, surviving, eliminated, preferences) }]);
         } else {
           // First call: show Filter 1 result (bridging to Filter 2)
           setPhase('filter1_result');
-          const surviving = data.surviving.map((c: { name: string; score: string; explanation?: string }) => ({
+          const survivingData = data.surviving.map((c: { name: string; score: string; explanation?: string }) => ({
             name: c.name, score: c.score || 'Cocok', matchDetails: c.explanation || 'Sesuai dengan kondisi lahan Anda.',
           }));
           const eliminated = data.eliminated.map((e: { name: string; reasons: string[] }) => ({ name: e.name, reasons: e.reasons }));
-          addMessages([{ role: 'assistant', content: filter1ResultMessage(userName, userGender, surviving, eliminated) }]);
+          addMessages([{ role: 'assistant', content: filter1ResultMessage(userName, userGender, survivingData, eliminated) }]);
         }
       }
     } catch { addMessages([{ role: 'assistant', content: errorMessage(userName, userGender) }]); }
@@ -189,11 +191,19 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── Filter 1 Result Handler ────────────────────────────────────────────────────
   const handleFilter1Lanjut = () => {
     setPhase('filter2_pref');
-    // Show economic data comparison + preference selection
-    const surviving = survivingCrops.map((c: { name: string }) => ({
-      name: c.name,
-      biaya: '—', harga: '—', produktivitas: '—', risiko: '—', permintaan: '—',
-    }));
+    // Build economic data from ECONOMIC_DATA constant
+    const ECONOMIC_DATA: Record<string, { biaya: string; harga: string; produktivitas: string; risiko: string; permintaan: string }> = {
+      'Padi':           { biaya: 'Rp 7.2 juta/ha',  harga: 'Rp 10.000/kg',  produktivitas: '5.28 ton/ha',  risiko: 'Sedang (2/3)',  permintaan: 'Sangat Tinggi (5/5)' },
+      'Jagung':         { biaya: 'Rp 6.2 juta/ha',  harga: 'Rp 8.400/kg',   produktivitas: '5.57 ton/ha',  risiko: 'Sedang (2/3)',  permintaan: 'Tinggi (4/5)' },
+      'Kedelai':        { biaya: 'Rp 5.4 juta/ha',  harga: 'Rp 16.500/kg',  produktivitas: '1.62 ton/ha',  risiko: 'Tinggi (3/3)',    permintaan: 'Tinggi (4/5)' },
+      'Cabai Merah':    { biaya: 'Rp 48.5 juta/ha', harga: 'Rp 52.000/kg',  produktivitas: '8.60 ton/ha',  risiko: 'Tinggi (3/3)',    permintaan: 'Tinggi (4/5)' },
+      'Bawang Merah':   { biaya: 'Rp 58.5 juta/ha', harga: 'Rp 37.300/kg',  produktivitas: '10.05 ton/ha', risiko: 'Tinggi (3/3)',    permintaan: 'Sangat Tinggi (5/5)' },
+      'Bawang Putih':   { biaya: 'Rp 91.6 juta/ha', harga: 'Rp 39.100/kg',  produktivitas: '8.50 ton/ha',  risiko: 'Tinggi (3/3)',    permintaan: 'Sangat Tinggi (5/5)' },
+    };
+    const surviving = survivingCrops.map((c: { name: string }) => {
+      const econ = ECONOMIC_DATA[c.name] || { biaya: '—', harga: '—', produktivitas: '—', risiko: '—', permintaan: '—' };
+      return { name: c.name, ...econ };
+    });
     addMessages([{ role: 'assistant', content: filter2PrefMessage(userName, userGender, surviving) }]);
   };
   const handleFilter1Cukup = () => {
