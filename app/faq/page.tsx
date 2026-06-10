@@ -1,4 +1,4 @@
-import { FAQ_CONTENT } from '@/lib/faq-content';
+import { FAQ_PAGE_CONTENT } from '@/lib/chat/content/faq-page-content';
 
 export default function FAQ() {
   return (
@@ -8,7 +8,7 @@ export default function FAQ() {
         <p className="text-lg text-slate-300">Jawaban atas pertanyaan seputar metode SAW, komoditas pertanian, dan parameter lahan.</p>
       </div>
 
-      {FAQ_CONTENT.map((section) => (
+      {FAQ_PAGE_CONTENT.map((section) => (
         <div key={section.id} className="glass-plate rounded-xl p-6">
           <h3 className="text-xl font-bold text-emerald-400 mb-4 font-heading">{section.title}</h3>
           <div className="space-y-4">
@@ -20,12 +20,6 @@ export default function FAQ() {
                 </summary>
                 <div className="mt-3 pl-3 pr-3 pb-3">
                   <p className="text-slate-300 leading-relaxed whitespace-pre-line text-sm">{item.answer}</p>
-                  {item.fixSuggestion && (
-                    <div className="mt-3 p-3 bg-emerald-400/10 border border-emerald-400/20 rounded-lg">
-                      <p className="text-emerald-300 text-sm font-medium">Saran perbaikan:</p>
-                      <p className="text-slate-300 text-sm mt-1">{item.fixSuggestion}</p>
-                    </div>
-                  )}
                 </div>
               </details>
             ))}
