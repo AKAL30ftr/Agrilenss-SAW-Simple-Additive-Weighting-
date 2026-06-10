@@ -1108,26 +1108,28 @@ export function runFullPipeline(input: string): FullRecommendationResult {
     const eliminatedNames = filter1.eliminated.map(
       (e) => `${e.cropName} (${e.failReasons[0]})`
     );
-    message = [
+    const lines: string[] = [
       `🌾 Rekomendasi utama: ${top.name} (skor SAW: ${top.preferenceScore.toFixed(3)})`,
       '',
     ];
 
     if (eliminatedNames.length > 0) {
-      message.push(`❌ Dieliminasikan:`);
-      eliminatedNames.forEach((n) => message.push(`• ${n}`));
-      message.push('');
+      lines.push('❌ Dieliminasikan:');
+      eliminatedNames.forEach((n) => lines.push(`• ${n}`));
+      lines.push('');
     }
 
-    message.push(`📊 Ranking:`);
-    sawResults.forEach((r, i) => message.push(`${i + 1}. ${r.name}: ${r.preferenceScore.toFixed(3)}`));
-    message.push('');
+    lines.push('📊 Ranking:');
+    sawResults.forEach((r, i) => lines.push(`${i + 1}. ${r.name}: ${r.preferenceScore.toFixed(3)}`));
+    lines.push('');
 
     if (budgetWarning) {
-      message += `\n${budgetWarning}\n\n`;
+      lines.push(budgetWarning);
+      lines.push('');
     }
 
-    message += '\n⚠️ Ini rekomendasi awal berdasarkan knowledge base. Validasi dengan penyuluh setempat sebelum keputusan tanam.';
+    lines.push('⚠️ Ini rekomendasi awal berdasarkan knowledge base. Validasi dengan penyuluh setempat sebelum keputusan tanam.');
+    message = lines.join('\n');
   }
 
   // RAG retrieval
