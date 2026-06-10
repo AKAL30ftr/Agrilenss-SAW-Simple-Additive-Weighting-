@@ -3,16 +3,16 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Bot } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { FlowPhase, FaqView, Message, StoredUserData } from '@/lib/chat/types';
-import { STORAGE_KEY, PARAM_ORDER, PARAM_LABELS, ECONOMIC_DATA } from '@/lib/chat/constants';
-import { extractOutOfRangeParams, AnimatedDots } from '@/lib/chat/helpers';
+import { STORAGE_KEY, PARAM_ORDER, PARAM_LABELS, ECONOMIC_DATA, MAX_PREFERENCE_SELECTION } from '@/lib/chat/constants';
+import { extractOutOfRangeParams, AnimatedDots, handleTogglePreference } from '@/lib/chat/helpers';
 import {
-  welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage,
-  confirmingMessage, resultMessage, allEliminatedMessage, detailMessage, loadingMessage,
+  welcomeMessage, ringkasanMessage, closingMessage, errorMessage,
+  confirmingMessage, allEliminatedMessage, detailMessage, loadingMessage,
   filter1ResultMessage, filter2PrefMessage, paramRecapLine, sap, filter2ResultMessage,
 } from '@/lib/chat/content/messages';
 import { getQuickReplies } from '@/lib/chat/content/quick-replies';
 import { FAQ_CONTENT } from '@/lib/chat/content/faq-content';
-import { MAX_PREFERENCE_SELECTION, handleTogglePreference } from '@/lib/chat/phases/preference';
+
 import type { CollectionState } from '@/lib/chat/phases/types';
 import {
   handleQuickReply as collectingHandleReply,
@@ -233,7 +233,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
 
   const handlePreferenceToggle = (prefId: string) => {
     setSelectedPreferences(prev => {
-      const result = handleTogglePreference(prev, prefId);
+      const result = handleTogglePreference(prev, prefId, MAX_PREFERENCE_SELECTION);
       return result.changed ? result.selectedIds : prev;
     });
   };

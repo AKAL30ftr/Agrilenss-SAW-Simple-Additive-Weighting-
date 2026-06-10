@@ -11,11 +11,8 @@ export type FlowPhase =
   | 'confirming'
   | 'filter1_result'
   | 'filter2_pref'
-  | 'preference'
   | 'detail'
   | 'done'
-  | 'loading'
-  | 'loading_result'
   | 'closing';
 export type MessageWithoutId = Omit<Message, 'id'>;
 

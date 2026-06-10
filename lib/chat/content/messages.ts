@@ -239,19 +239,7 @@ export function filter2PrefMessage(
   return lines.join('\n');
 }
 
-export function preferenceMessage(name: string, gender: Sapaan | '', survivingCount: number, cropList: string): string {
-  const s = sap(gender);
-  return [
-    `Bagus, ${s} ${name}! 🎉`,
-    '',
-    `Dari 6 jenis tanaman, ada **${survivingCount} yang cocok** dengan lahan ${s}:`,
-    cropList,
-    '',
-    `Sekarang, untuk menentukan ranking terbaik, saya perlu tahu **prioritas** ${s}.`,
-    '',
-    `_Mana yang lebih penting? ${s} bisa pilih **sampai 5**._`,
-  ].join('\n');
-}
+
 // ─── Phase: filter2_result (hasil setelah Filter 2) ────────────────────────────
 export function filter2ResultMessage(
   name: string, gender: Sapaan | '',
@@ -313,34 +301,7 @@ export function filter2ResultMessage(
 
 // ─── Phase 6: Result ──────────────────────────────────────────────────────────
 
-export function resultMessage(
-  name: string, gender: Sapaan | '',
-  surviving: Array<{ name: string; score: string; explanation?: string }>,
-  eliminated: Array<{ name: string; reasons: string[] }>
-): string {
-  const s = sap(gender);
-  const lines: string[] = [
-    `${s} ${name}, berikut hasil rekomendasi saya berdasarkan kondisi lahan ${s}:`,
-    '',
-  ];
-  const labels = ['**Paling cocok** 🏆', '**Tidak kalah bagus** 👍', '**Dapat dipertimbangkan** 🤔'];
-  surviving.slice(0, 3).forEach((crop, i) => {
-    const emoji = EMOJI[crop.name] || '🌱';
-    const label = labels[i] || `**Peringkat ${i + 1}**`;
-    lines.push(`${emoji} **${crop.name}**: ${label}`);
-    if (crop.explanation) lines.push(`_${crop.explanation}_`);
-    lines.push('');
-  });
-  if (eliminated.length > 0) {
-    lines.push('---');
-    lines.push('');
-    lines.push(`Sayangnya, **${eliminated.length} tanaman** tidak lolos Filter 1:`);
-    eliminated.forEach(c => { lines.push(`• **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
-    lines.push('');
-  }
-  lines.push('Mau lihat detail salah satu tanaman, atau ada yang ingin ditanyakan?');
-  return lines.join('\n');
-}
+
 
 export function allEliminatedMessage(name: string, gender: Sapaan | '', eliminated: Array<{ name: string; reasons: string[] }>): string {
   const s = sap(gender);

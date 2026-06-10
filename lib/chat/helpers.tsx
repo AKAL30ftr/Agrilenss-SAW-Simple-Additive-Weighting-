@@ -57,3 +57,10 @@ export function AnimatedDots() {
 
   return <span className="inline-block w-6 text-left">{dots}</span>;
 }
+
+export function handleTogglePreference(selectedIds: string[], prefId: string, maxSelection: number): { selectedIds: string[]; changed: boolean } {
+  const idx = selectedIds.indexOf(prefId);
+  if (idx >= 0) return { selectedIds: selectedIds.filter((id) => id !== prefId), changed: true };
+  if (selectedIds.length >= maxSelection) return { selectedIds, changed: false };
+  return { selectedIds: [...selectedIds, prefId], changed: true };
+}
