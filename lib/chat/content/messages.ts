@@ -1,6 +1,6 @@
 export type Sapaan = 'laki' | 'perempuan';
 
-function sap(gender: Sapaan | ''): string {
+export function sap(gender: Sapaan | ''): string {
   return gender === 'perempuan' ? 'Ibu' : 'Pak';
 }
 
@@ -8,6 +8,8 @@ const EMOJI: Record<string, string> = {
   'Padi': '🌾', 'Jagung': '🌽', 'Kedelai': '🫘',
   'Cabai Merah': '🌶️', 'Bawang Merah': '🧅', 'Bawang Putih': '🧄',
 };
+
+// ─── Phase 1: Welcome ─────────────────────────────────────────────────────────
 
 export function welcomeMessage(): string {
   return [
@@ -19,28 +21,42 @@ export function welcomeMessage(): string {
   ].join('\n');
 }
 
+// ─── Phase 2: Ringkasan ───────────────────────────────────────────────────────
+
 export function ringkasanMessage(name: string, gender: Sapaan | ''): string {
   const s = sap(gender);
   return [
-    `Terima kasih, ${s} ${name}! Sebelum kita mulai, izinkan saya menjelaskan singkat cara kerja sistem ini.`,
+    `Terima kasih, ${s} ${name}! 🌾`,
     '',
-    '**Prosesnya:**',
+    'Sistem ini menggunakan **2 tahap analisis** untuk memberikan rekomendasi terbaik:',
     '',
-    '**1.** Saya akan menanyakan 5 kondisi lahan:',
+    '**Tahap 1 — Kesesuaian Lingkungan**',
+    '',
+    'Saya akan menanyakan 5 kondisi lahan:',
     '• Ketinggian tempat',
     '• Curah hujan',
     '• Kondisi tanah (pH)',
     '• Tekstur tanah',
     '• Intensitas cahaya',
     '',
-    '**2.** Saya cocokkan dengan 6 jenis tanaman:',
-    '🌾 Padi • 🌽 Jagung • 🫘 Kedelai • 🌶️ Cabai • 🧅 Bawang Merah • 🧄 Bawang Putih',
+    'Dari 6 komoditas — 🌾 Padi, 🌽 Jagung, 🫘 Kedelai, 🌶️ Cabai, 🧅 Bawang Merah, 🧄 Bawang Putih — saya akan saring mana yang cocok dengan lahan Anda.',
     '',
-    '**3.** Tanaman yang cocok dihitung rankingnya berdasarkan prioritas Anda.',
+    '**Tahap 2 — Analisis Keuntungan**',
     '',
-    `Gampangnya begitu, ${s}. Ada yang ingin ditanyakan dulu, atau langsung mulai?`,
+    'Untuk komoditas yang cocok, saya hitung ranking keuntungannya berdasarkan:',
+    '• Biaya produksi',
+    '• Harga jual',
+    '• Produktivitas',
+    '• Risiko gagal panen',
+    '• Permintaan pasar',
+    '',
+    '---',
+    '',
+    `Ada yang ingin ditanyakan dulu, atau langsung mulai?`,
   ].join('\n');
 }
+
+// ─── Phase 3: Collecting ──────────────────────────────────────────────────────
 
 export function collectingQuestion(param: string, name: string, gender: Sapaan | ''): string {
   const s = sap(gender);
@@ -127,6 +143,8 @@ export function kurangYakinFallback(param: string, name: string, gender: Sapaan 
   return fallbacks[param] || `Silakan pilih perkiraan ${param} ${s}. Perkiraan kasar sudah cukup.`;
 }
 
+// ─── Phase 4: Confirming ──────────────────────────────────────────────────────
+
 export function confirmingMessage(name: string, gender: Sapaan | ''): string {
   const s = sap(gender);
   return [
@@ -135,6 +153,95 @@ export function confirmingMessage(name: string, gender: Sapaan | ''): string {
     'Silakan periksa dulu, apakah data di bawah ini sudah benar:',
   ].join('\n');
 }
+
+export function paramRecapLine(param: string, value: string): string {
+  const config: Record<string, { emoji: string; label: string }> = {
+    'ketinggian': { emoji: '📍', label: 'Ketinggian' },
+    'curah hujan': { emoji: '🌧️', label: 'Curah hujan' },
+    'pH tanah': { emoji: '🔬', label: 'pH tanah' },
+    'tekstur tanah': { emoji: '🤲', label: 'Tekstur tanah' },
+    'intensitas cahaya': { emoji: '☀️', label: 'Intensitas cahaya' },
+  };
+  const c = config[param] || { emoji: '•', label: param };
+  return `${c.emoji} **${c.label}:** ${value}`;
+}
+
+// ─── Phase: filter1_result ────────────────────────────────────────────────────
+
+export function filter1ResultMessage(
+  name: string, gender: Sapaan | '',
+  surviving: Array<{ name: string; score: string; matchDetails: string }>,
+  eliminated: Array<{ name: string; reasons: string[] }>
+): string {
+  const s = sap(gender);
+  const lines: string[] = [
+    `Berdasarkan kondisi lingkungan lahan ${s}, berikut komoditas yang **paling cocok secara agronomis**: 🌿`,
+    '',
+  ];
+
+  surviving.forEach(crop => {
+    const emoji = EMOJI[crop.name] || '🌱';
+    lines.push(`${emoji} **${crop.name}** — ${crop.score}`);
+    lines.push(crop.matchDetails);
+    lines.push('');
+  });
+
+  if (eliminated.length > 0) {
+    lines.push('---');
+    lines.push('');
+    lines.push(`Sayangnya, **${eliminated.length} tanaman tidak lolos** karena kondisi lingkungan:`);
+    eliminated.forEach(crop => {
+      lines.push(`• **${crop.name}**: ${crop.reasons[0] || 'Kondisi lahan kurang cocok'}`);
+    });
+    lines.push('');
+  }
+
+  lines.push('---');
+  lines.push('');
+  `Selanjutnya, saya bisa menghitung **ranking keuntungan ekonomi** untuk ${surviving.length} komoditas yang cocok ini.`;
+  lines.push('');
+  'Dengan mempertimbangkan biaya produksi, harga jual, produktivitas, risiko gagal panen, dan permintaan pasar.';
+  lines.push('');
+  `Mau dilanjutkan, ${s}?`;
+
+  return lines.join('\n');
+}
+
+// ─── Phase: filter2_pref ──────────────────────────────────────────────────────
+
+export function filter2PrefMessage(
+  name: string, gender: Sapaan | '',
+  surviving: Array<{ name: string; biaya: string; harga: string; produktivitas: string; risiko: string; permintaan: string }>
+): string {
+  const s = sap(gender);
+  const lines: string[] = [
+    `Baik, ${s}! 📊`,
+    '',
+    'Berikut data ekonomi untuk masing-masing komoditas:',
+    '',
+  ];
+
+  surviving.forEach(crop => {
+    const emoji = EMOJI[crop.name] || '🌱';
+    lines.push(`${emoji} **${crop.name}**`);
+    lines.push(`• Biaya Produksi: ${crop.biaya}`);
+    lines.push(`• Harga Jual: ${crop.harga}`);
+    lines.push(`• Produktivitas: ${crop.produktivitas}`);
+    lines.push(`• Risiko: ${crop.risiko}`);
+    lines.push(`• Permintaan: ${crop.permintaan}`);
+    lines.push('');
+  });
+
+  lines.push('---');
+  lines.push('');
+  `Untuk menentukan ranking, saya perlu tahu **prioritas** ${s}.`;
+  lines.push('');
+  `_Mana yang lebih penting? ${s} bisa pilih **sampai 3**._`;
+
+  return lines.join('\n');
+}
+
+// ─── Phase 5: Preference ──────────────────────────────────────────────────────
 
 export function preferenceMessage(name: string, gender: Sapaan | '', survivingCount: number, cropList: string): string {
   const s = sap(gender);
@@ -150,7 +257,13 @@ export function preferenceMessage(name: string, gender: Sapaan | '', survivingCo
   ].join('\n');
 }
 
-export function resultMessage(name: string, gender: Sapaan | '', surviving: Array<{ name: string; score: string; explanation?: string }>, eliminated: Array<{ name: string; reasons: string[] }>): string {
+// ─── Phase 6: Result ──────────────────────────────────────────────────────────
+
+export function resultMessage(
+  name: string, gender: Sapaan | '',
+  surviving: Array<{ name: string; score: string; explanation?: string }>,
+  eliminated: Array<{ name: string; reasons: string[] }>
+): string {
   const s = sap(gender);
   const lines: string[] = [
     `${s} ${name}, berikut hasil rekomendasi saya berdasarkan kondisi lahan ${s}:`,
@@ -167,7 +280,7 @@ export function resultMessage(name: string, gender: Sapaan | '', surviving: Arra
   if (eliminated.length > 0) {
     lines.push('---');
     lines.push('');
-    lines.push(`Sayangnya, **${eliminated.length} tanaman** tidak lolos:`);
+    lines.push(`Sayangnya, **${eliminated.length} tanaman** tidak lolos Filter 1:`);
     eliminated.forEach(c => { lines.push(`• **${c.name}**: ${c.reasons[0] || 'Kondisi lahan kurang cocok'}`); });
     lines.push('');
   }
@@ -202,6 +315,8 @@ export function detailMessage(cropName: string, score: string, explanation?: str
   ].join('\n');
 }
 
+// ─── Phase 7: Closing ─────────────────────────────────────────────────────────
+
 export function closingMessage(name: string, gender: Sapaan | ''): string {
   const s = sap(gender);
   return [
@@ -216,6 +331,8 @@ export function closingMessage(name: string, gender: Sapaan | ''): string {
     `Mau konsultasi ulang atau ada pertanyaan lain, ${s}?`,
   ].join('\n');
 }
+
+// ─── Error messages ───────────────────────────────────────────────────────────
 
 export function errorMessage(name: string, gender: Sapaan | ''): string {
   const s = sap(gender);

@@ -6,11 +6,12 @@ export const RINGKASAN_REPLIES: QuickReply[] = [
   { label: 'Ada pertanyaan dulu', value: '__RINGKASAN_FAQ__' },
 ];
 
-// ── Phase 2A: FAQ ─────────────────────────────────────────────────────────────
 export const FAQ_REPLIES: QuickReply[] = [
-  { label: 'Tentang cara kerja sistem', value: 'faq_sistem' },
-  { label: 'Tentang jenis tanaman', value: 'faq_tanaman' },
-  { label: 'Tentang kondisi lahan', value: 'faq_lahan' },
+  { label: 'Tentang cara kerja sistem', value: 'faq-sistem' },
+  { label: 'Tentang jenis tanaman', value: 'faq-crops' },
+  { label: 'Tentang kondisi lahan', value: 'faq-params' },
+  { label: 'Tentang Filter 1 (lingkungan)', value: 'faq-filter1' },
+  { label: 'Tentang Filter 2 (keuntungan)', value: 'faq-filter2' },
   { label: 'Kembali ke konsultasi', value: '__FAQ_KEMBALI__' },
 ];
 
@@ -55,8 +56,15 @@ export const CONFIRMING_REPLIES: QuickReply[] = [
   { label: 'Ulangi dari awal', value: '__CONFIRM_ULANGI__' },
 ];
 
-// ── Phase 5: Preference ────────────────────────────────────────────────────────
-export const PREFERENCE_REPLIES: QuickReply[] = [
+// ── Phase: filter1_result ──────────────────────────────────────────────────────
+export const FILTER1_RESULT_REPLIES: QuickReply[] = [
+  { label: 'Lanjut analisis keuntungan', value: '__FILTER1_LANJUT__' },
+  { label: 'Cukup, tampilkan rekomendasi', value: '__FILTER1_CUKUP__' },
+  { label: 'Konsultasi ulang', value: '__FILTER1_ULANGI__' },
+];
+
+// ── Phase: filter2_pref ────────────────────────────────────────────────────────
+export const FILTER2_PREF_REPLIES: QuickReply[] = [
   { label: 'Biaya produksi rendah', value: 'pref_biaya' },
   { label: 'Harga jual tinggi', value: 'pref_harga' },
   { label: 'Produktivitas tinggi', value: 'pref_produktivitas' },
@@ -66,7 +74,6 @@ export const PREFERENCE_REPLIES: QuickReply[] = [
 ];
 
 // ── Phase 6: Result ────────────────────────────────────────────────────────────
-// Dynamic — generated per surviving crops
 export function getResultReplies(survivingCrops: Array<{ name: string }>): QuickReply[] {
   const detailReplies = survivingCrops.map(crop => ({
     label: `Lihat detail ${crop.name}`,
@@ -96,8 +103,9 @@ export const CLOSING_REPLIES: QuickReply[] = [
 export function getQuickReplies(phase: string, collectionState?: { currentParamIndex: number }, survivingCrops?: Array<{ name: string }>): QuickReply[] {
   if (phase === 'ringkasan') return RINGKASAN_REPLIES;
   if (phase === 'faq') return FAQ_REPLIES;
+  if (phase === 'filter1_result') return FILTER1_RESULT_REPLIES;
+  if (phase === 'filter2_pref') return FILTER2_PREF_REPLIES;
   if (phase === 'confirming') return CONFIRMING_REPLIES;
-  if (phase === 'preference') return PREFERENCE_REPLIES;
   if (phase === 'done') return survivingCrops ? getResultReplies(survivingCrops) : [];
   if (phase === 'detail') return DETAIL_REPLIES;
   if (phase === 'closing') return CLOSING_REPLIES;

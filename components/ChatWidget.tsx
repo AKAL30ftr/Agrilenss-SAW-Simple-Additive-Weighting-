@@ -5,9 +5,14 @@ import ReactMarkdown from 'react-markdown';
 import type { FlowPhase, FaqView, Message, StoredUserData } from '@/lib/chat/types';
 import { STORAGE_KEY, PARAM_ORDER, PARAM_LABELS } from '@/lib/chat/constants';
 import { extractOutOfRangeParams, AnimatedDots } from '@/lib/chat/helpers';
-import { welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage, confirmingMessage, resultMessage, allEliminatedMessage, detailMessage, loadingMessage } from '@/lib/chat/content/messages';
+import {
+  welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage,
+  confirmingMessage, resultMessage, allEliminatedMessage, detailMessage, loadingMessage,
+  filter1ResultMessage, filter2PrefMessage, paramRecapLine, sap,
+} from '@/lib/chat/content/messages';
 import { getQuickReplies } from '@/lib/chat/content/quick-replies';
-import { PREFERENCE_OPTIONS, MAX_PREFERENCE_SELECTION, handleTogglePreference } from '@/lib/chat/phases/preference';
+import { FAQ_CONTENT } from '@/lib/chat/content/faq-content';
+import { MAX_PREFERENCE_SELECTION, handleTogglePreference } from '@/lib/chat/phases/preference';
 import type { CollectionState } from '@/lib/chat/phases/types';
 import {
   handleQuickReply as collectingHandleReply,
@@ -97,18 +102,28 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
 
   const handleShowFaqCategories = () => {
     setPhase('faq');
-    addMessages([{ role: 'assistant', content: 'Baik, apa yang ingin ditanyakan?\n\n• Tentang cara kerja sistem\n• Tentang jenis tanaman\n• Tentang kondisi lahan\n• Kembali ke konsultasi' }]);
+    const sections = FAQ_CONTENT.map(s => `• ${s.title}`);
+    addMessages([{ role: 'assistant', content: `Baik, apa yang ingin ditanyakan?\n\n${sections.join('\n')}\n\n• Kembali ke konsultasi` }]);
   };
-
   // ── PHASE 2A: FAQ ─────────────────────────────────────────────────────────────
   const handleFaqAction = (value: string) => {
     if (value === '__FAQ_KEMBALI__') { setPhase('ringkasan'); addMessages([{ role: 'assistant', content: ringkasanMessage(userName, userGender) }]); return; }
-    const faqContent: Record<string, string> = {
-      'faq_sistem': 'Sistem Agri-SAW Pro menggunakan metode Simple Additive Weighting (SAW) untuk menganalisis kesesuaian lahan dan keuntungan ekonomi tanaman. Prosesnya: (1) Anda masukkan 5 kondisi lahan, (2) Sistem cocokkan dengan 6 jenis tanaman, (3) Tanaman yang cocok dihitung rankingnya berdasarkan prioritas Anda.',
-      'faq_tanaman': '6 jenis tanaman yang didukung: Padi, Jagung, Kedelai, Cabai Merah, Bawang Merah, dan Bawang Putih. Masing-masing punya karakteristik berbeda — ada yang cocok di dataran rendah, ada di dataran tinggi. Tergantung kondisi lahan Anda.',
-      'faq_lahan': '5 kondisi lahan yang ditanyakan: (1) Ketinggian — menentukan suhu dan jenis tanaman, (2) Curah hujan — sumber air utama, (3) pH tanah — tingkat keasaman tanah, (4) Tekstur tanah — struktur tanah, (5) Intensitas cahaya — lama paparan sinar matahari.',
-    };
-    addMessages([{ role: 'assistant', content: faqContent[value] || 'Maaf, konten FAQ untuk topik ini belum tersedia.' }]);
+    // Check if it's a section selection
+    const section = FAQ_CONTENT.find(s => s.id === value);
+    if (section) {
+      const items = section.items.map(i => `• ${i.question}`);
+      addMessages([{ role: 'assistant', content: `**${section.title}**\n\n${items.join('\n')}\n\n• Kembali ke FAQ` }]);
+      return;
+    }
+    // Check if it's a specific question
+    for (const section of FAQ_CONTENT) {
+      const item = section.items.find(i => i.id === value);
+      if (item) {
+        addMessages([{ role: 'assistant', content: `**${item.question}**\n\n${item.answer}\n\n• Kembali ke FAQ` }]);
+        return;
+      }
+    }
+    addMessages([{ role: 'assistant', content: 'Maaf, konten FAQ untuk topik ini belum tersedia. Silakan pilih topik lain.' }]);
   };
 
   // ── PHASE 3: COLLECTING ──────────────────────────────────────────────────────
@@ -138,7 +153,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     proceedWithCalculation(apiParams);
   };
 
-  // ── PHASE 5-6: PREFERENCE → LOADING → RESULT ─────────────────────────────────
+  // ── PHASE: API Call Handler ───────────────────────────────────────────────────
   const proceedWithCalculation = async (params: Record<string, unknown>, preferences?: string[]) => {
     setIsLoading(true); setShowPreferences(false);
     addMessages([{ role: 'assistant', content: loadingMessage(userName, userGender) }]);
@@ -153,18 +168,43 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         setPhase('done');
       } else if (data.surviving?.length > 0) {
         if (preferences && preferences.length > 0) {
+          // Second call: show Filter 2 result
           setPhase('done');
           const surviving = data.surviving.map((c: { name: string; score: string; explanation?: string }) => ({ name: c.name, score: c.score, explanation: c.explanation }));
           const eliminated = data.eliminated.map((e: { name: string; reasons: string[] }) => ({ name: e.name, reasons: e.reasons }));
           addMessages([{ role: 'assistant', content: resultMessage(userName, userGender, surviving, eliminated) }]);
         } else {
-          setShowPreferences(true); setPhase('preference');
-          const cropList = data.surviving.map((c: { name: string }) => c.name).join(', ');
-          addMessages([{ role: 'assistant', content: preferenceMessage(userName, userGender, data.surviving.length, cropList) }]);
+          // First call: show Filter 1 result (bridging to Filter 2)
+          setPhase('filter1_result');
+          const surviving = data.surviving.map((c: { name: string; score: string; explanation?: string }) => ({
+            name: c.name, score: c.score || 'Cocok', matchDetails: c.explanation || 'Sesuai dengan kondisi lahan Anda.',
+          }));
+          const eliminated = data.eliminated.map((e: { name: string; reasons: string[] }) => ({ name: e.name, reasons: e.reasons }));
+          addMessages([{ role: 'assistant', content: filter1ResultMessage(userName, userGender, surviving, eliminated) }]);
         }
       }
     } catch { addMessages([{ role: 'assistant', content: errorMessage(userName, userGender) }]); }
     finally { setIsLoading(false); }
+  };
+  // ── Filter 1 Result Handler ────────────────────────────────────────────────────
+  const handleFilter1Lanjut = () => {
+    setPhase('filter2_pref');
+    // Show economic data comparison + preference selection
+    const surviving = survivingCrops.map((c: { name: string }) => ({
+      name: c.name,
+      biaya: '—', harga: '—', produktivitas: '—', risiko: '—', permintaan: '—',
+    }));
+    addMessages([{ role: 'assistant', content: filter2PrefMessage(userName, userGender, surviving) }]);
+  };
+  const handleFilter1Cukup = () => {
+    setPhase('done');
+    addMessages([{ role: 'assistant', content: `Baik, ${userName}! Berdasarkan analisis kesesuaian lingkungan, berikut rekomendasi saya:\n\n${survivingCrops.map((c: { name: string }, i: number) => `${i + 1}. **${c.name}**`).join('\n')}\n\nSemoga rekomendasi ini membantu, ${sap(userGender)}!` }]);
+  };
+  // ── Filter 2 Preference Handler ───────────────────────────────────────────────
+  const handleFilter2PrefSubmit = () => {
+    if (selectedPreferences.length === 0) return;
+    addMessages([{ role: 'user', content: 'Hitung Ranking' }]);
+    proceedWithCalculation(collectedParams || {}, selectedPreferences);
   };
 
   const handlePreferenceToggle = (prefId: string) => {
@@ -191,19 +231,24 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const handleSelesai = () => { addMessages([{ role: 'user', content: 'Selesai' }, { role: 'assistant', content: closingMessage(userName, userGender) }]); setPhase('closing'); };
 
   // ── MASTER QUICK REPLY HANDLER ────────────────────────────────────────────────
-  // ── MASTER QUICK REPLY HANDLER ────────────────────────────────────────────────
   const handleQuickReply = (value: string, label?: string) => {
     if (isLoading) return;
-    // For collecting and faq phases, add user message with label (what user sees)
-    // Other phases add their own user messages in their handlers
-    if (label && (phase === 'collecting' || phase === 'faq')) {
+    if (label && (phase === 'collecting' || phase === 'faq' || phase === 'filter1_result' || phase === 'filter2_pref')) {
       addMessages([{ role: 'user', content: label }]);
     }
     if (phase === 'ringkasan') { if (value === '__RINGKASAN_LANJUT__') handleRingkasanLanjut(); else if (value === '__RINGKASAN_FAQ__') handleShowFaqCategories(); }
     else if (phase === 'faq') handleFaqAction(value);
     else if (phase === 'confirming') { if (value === '__CONFIRM_HITUNG__') handleHitungRekomendasi(); else if (value === '__CONFIRM_ULANGI__') handleUlangi(); }
     else if (phase === 'collecting') handleCollectingQuickReply(value);
-    else if (phase === 'preference') { if (value === '__PREF_HITUNG_RANKING__') handlePreferenceSubmit(); else handlePreferenceToggle(value); }
+    else if (phase === 'filter1_result') {
+      if (value === '__FILTER1_LANJUT__') handleFilter1Lanjut();
+      else if (value === '__FILTER1_CUKUP__') handleFilter1Cukup();
+      else if (value === '__FILTER1_ULANGI__') handleUlangi();
+    }
+    else if (phase === 'filter2_pref') {
+      if (value === '__PREF_HITUNG_RANKING__') handleFilter2PrefSubmit();
+      else handlePreferenceToggle(value);
+    }
     else if (phase === 'done') { if (value.startsWith('__DETAIL__')) handleLihatDetail(value.replace('__DETAIL__', '')); else if (value === '__ULANGI_KONSULTASI__') handleUlangi(); else if (value === '__SELESAI__') handleSelesai(); }
     else if (phase === 'detail') { if (value === '__DETAIL_KEMBALI__') handleKembaliKeHasil(); else if (value === '__DETAIL_ULANGI__') handleUlangi(); else if (value === '__DETAIL_SELESAI__') handleSelesai(); }
     else if (phase === 'closing') { if (value === '__CLOSING_ULANGI__') handleUlangi(); else if (value === '__CLOSING_BERANDA__') { setPhase('welcome'); setMessages([{ id: nextMsgId(), role: 'assistant', content: welcomeMessage() }]); setUserName(''); setUserGender('laki'); setCollectedParams(null); setSurvivingCrops([]); setEliminatedCrops([]); setOutOfRangeParams([]); setSelectedCropDetail(null); setFaqView('none'); setFormName(''); setFormGender(''); }

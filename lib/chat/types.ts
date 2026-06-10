@@ -9,6 +9,8 @@ export type FlowPhase =
   | 'faq'
   | 'collecting'
   | 'confirming'
+  | 'filter1_result'
+  | 'filter2_pref'
   | 'preference'
   | 'detail'
   | 'done'
