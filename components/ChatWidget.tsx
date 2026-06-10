@@ -4,6 +4,7 @@ import { Bot } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { FlowPhase, FaqView, Message, StoredUserData } from '@/lib/chat/types';
 import { STORAGE_KEY, PARAM_ORDER, PARAM_LABELS, ECONOMIC_DATA, MAX_PREFERENCE_SELECTION } from '@/lib/chat/constants';
+import { TOOLTIPS } from '@/lib/chat/content/tooltips';
 import { extractOutOfRangeParams, AnimatedDots, handleTogglePreference } from '@/lib/chat/helpers';
 import {
   welcomeMessage, ringkasanMessage, closingMessage, errorMessage,
@@ -39,6 +40,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [selectedCropDetail, setSelectedCropDetail] = useState<{ name: string; score: string } | null>(null);
   const [darkHorse, setDarkHorse] = useState<Array<{ cropName: string; totalProximity: number; failReasons: string[]; advice: string }>>([]);
   const [faqSection, setFaqSection] = useState<string | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const msgIdCounter = useRef(0);
@@ -67,6 +69,15 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     return () => window.removeEventListener('keydown', h);
   }, [isOpen, fullPage]);
 
+  // Update tooltip when collecting parameter changes
+  useEffect(() => {
+    if (phase !== 'collecting') { setActiveTooltip(null); return; }
+    const param = PARAM_ORDER[collectionState.currentParamIndex];
+    if (param && TOOLTIPS[param]) {
+      setActiveTooltip(TOOLTIPS[param]);
+    }
+  }, [phase, collectionState.currentParamIndex]);
+
   const addMessages = useCallback((msgs: Array<{ role: 'user' | 'assistant'; content: string }>) => {
     setMessages((p) => [...p, ...msgs.map((m) => ({ ...m, id: nextMsgId() }))]);
   }, []);
@@ -94,6 +105,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── PHASE 2: RINGKASAN ───────────────────────────────────────────────────────
   const handleRingkasanLanjut = () => {
     setCollectionState(createInitialCollectionState()); setPhase('collecting'); setFaqSection(null);
+    setActiveTooltip(TOOLTIPS['ketinggian'] || null);
     addMessages([
       { role: 'user', content: 'Mengerti, lanjut konsultasi' },
       { role: 'assistant', content: getCurrentQuestion(createInitialCollectionState(), userName, userGender) },
@@ -308,7 +320,17 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
         {isLoading && (<div className="flex justify-start"><Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" /><div className="bg-[#1f2c33] rounded-lg rounded-tl-none px-3 py-2 text-sm text-white/50"><AnimatedDots /></div></div>)}
         {/* Quick Replies — INSIDE scroll area, directly after last bubble */}
         {phase !== 'welcome' && quickReplies.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1 pb-3">
+          <div className="flex flex-wrap gap-2 pt-1 pb-3 items-center">
+            {/* Tooltip info button for collecting phase */}
+            {phase === 'collecting' && activeTooltip && (
+              <button
+                onClick={() => setActiveTooltip(activeTooltip ? null : TOOLTIPS[PARAM_ORDER[collectionState.currentParamIndex]] || null)}
+                className={`px-2.5 py-2 text-sm rounded-full border transition-all duration-150 cursor-pointer ${activeTooltip ? 'bg-amber-600/20 border-amber-500 text-amber-300' : 'bg-transparent border-[#3b4a54] text-[#8696a0] hover:bg-[#2a3942] hover:text-white'}`}
+                title="Kenapa parameter ini ditanyakan?"
+              >
+                ℹ️
+              </button>
+            )}
             {quickReplies.map((reply) => {
               const isPrefSelected = phase === 'filter2_pref' && selectedPreferences.includes(reply.value);
               const isPrefDisabled = phase === 'filter2_pref' && !selectedPreferences.includes(reply.value) && selectedPreferences.length >= MAX_PREFERENCE_SELECTION && reply.value !== '__PREF_HITUNG_RANKING__';
@@ -323,6 +345,19 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
               else btnClass += 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600 hover:text-white hover:border-emerald-400 ';
               return (<button key={reply.value} onClick={() => handleQuickReply(reply.value, reply.label)} disabled={isLoading || isPrefDisabled} className={btnClass + 'disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed'}>{reply.label}</button>);
             })}
+          </div>
+        )}
+        {/* Tooltip — shows info about the current collecting parameter */}
+        {phase === 'collecting' && activeTooltip && (
+          <div className="mx-3 mb-2 p-3 bg-[#1a2332] border border-[#2a3942] rounded-lg text-sm text-slate-300 leading-relaxed">
+            <div className="flex items-start gap-2">
+              <span className="text-amber-400 shrink-0 mt-0.5">💡</span>
+              <div>
+                <p className="font-medium text-amber-300 text-xs mb-1 uppercase tracking-wide">Kenapa ditanyakan?</p>
+                <p className="whitespace-pre-line">{activeTooltip}</p>
+              </div>
+              <button onClick={() => setActiveTooltip(null)} className="text-slate-500 hover:text-white shrink-0 ml-auto text-lg leading-none">&times;</button>
+            </div>
           </div>
         )}
         {/* Spacer — always 15% of viewport height, stays when scrolling up */}
