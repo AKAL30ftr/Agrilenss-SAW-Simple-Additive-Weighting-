@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Bot } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import type { FlowPhase, FaqView, Message, StoredUserData } from '@/lib/chat/types';
 import { STORAGE_KEY, PARAM_ORDER, PARAM_LABELS, ECONOMIC_DATA, MAX_PREFERENCE_SELECTION } from '@/lib/chat/constants';
 import { TOOLTIPS } from '@/lib/chat/content/tooltips';
@@ -313,7 +314,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && <Bot className="w-5 h-5 text-emerald-400 shrink-0 mt-1 mr-2" />}
             <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-[#1f2c33] text-white/90 rounded-tl-none'}`}>
-              {msg.role === 'assistant' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <span className="whitespace-pre-line">{msg.content}</span>}
+              {msg.role === 'assistant' ? <ReactMarkdown remarkPlugins={[remarkBreaks]}>{msg.content}</ReactMarkdown> : <span className="whitespace-pre-line">{msg.content}</span>}
             </div>
           </div>
         ))}

@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import { FAQ_PAGE_CONTENT } from '@/lib/chat/content/faq-page-content';
 
 export default function FAQ() {
@@ -20,7 +21,7 @@ export default function FAQ() {
                   <span className="text-emerald-400 group-open:rotate-180 transition-transform">▼</span>
                 </summary>
                 <div className="mt-3 pl-3 pr-3 pb-3 text-slate-300 text-sm leading-relaxed">
-                  <ReactMarkdown>{item.answer}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkBreaks]}>{item.answer}</ReactMarkdown>
                 </div>
               </details>
             ))}
