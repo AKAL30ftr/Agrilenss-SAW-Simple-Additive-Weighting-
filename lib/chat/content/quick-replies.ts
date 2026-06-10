@@ -13,7 +13,7 @@ export const FAQ_REPLIES: QuickReply[] = [
   { label: 'Tentang Kondisi Lingkungan', value: 'cat_lingkungan' },
   { label: 'Tentang Filter 1 — Lingkungan', value: 'cat_filter1' },
   { label: 'Tentang Filter 2 — Keuntungan', value: 'cat_filter2' },
-  { label: 'Kembali ke konsultasi', value: '__FAQ_KEMBALI__' },
+  { label: 'Kembali', value: '__FAQ_KEMBALI__' },
 ];
 export function getFaqQuestionReplies(sectionId: string): QuickReply[] {
   const section = FAQ_CONTENT.find(s => s.id === sectionId);

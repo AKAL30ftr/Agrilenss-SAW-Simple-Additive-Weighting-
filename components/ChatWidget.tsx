@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Bot } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { FlowPhase, FaqView, Message, StoredUserData } from '@/lib/chat/types';
-import { STORAGE_KEY, PARAM_ORDER, PARAM_LABELS } from '@/lib/chat/constants';
+import { STORAGE_KEY, PARAM_ORDER, PARAM_LABELS, ECONOMIC_DATA } from '@/lib/chat/constants';
 import { extractOutOfRangeParams, AnimatedDots } from '@/lib/chat/helpers';
 import {
   welcomeMessage, ringkasanMessage, preferenceMessage, closingMessage, errorMessage,
@@ -33,13 +33,11 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const [collectionState, setCollectionState] = useState<CollectionState>(createInitialCollectionState);
   const [collectedParams, setCollectedParams] = useState<Record<string, unknown> | null>(null);
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
-  const [showPreferences, setShowPreferences] = useState(false);
   const [eliminatedCrops, setEliminatedCrops] = useState<Array<{ name: string; reasons: string[] }>>([]);
   const [outOfRangeParams, setOutOfRangeParams] = useState<string[]>([]);
   const [survivingCrops, setSurvivingCrops] = useState<Array<{ name: string; score: string; normalizedValues?: Record<string, number>; explanation?: string }>>([]);
   const [selectedCropDetail, setSelectedCropDetail] = useState<{ name: string; score: string } | null>(null);
   const [darkHorse, setDarkHorse] = useState<Array<{ cropName: string; totalProximity: number; failReasons: string[]; advice: string }>>([]);
-  const [faqView, setFaqView] = useState<FaqView>('none');
   const [faqSection, setFaqSection] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -90,12 +88,12 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       { role: 'user', content: `Nama: ${name}\nJenis Kelamin: ${gender === 'laki' ? 'Laki-laki' : 'Perempuan'}` },
       { role: 'assistant', content: ringkasanMessage(name, gender) },
     ]);
-    setPhase('ringkasan'); setFaqView('none');
+    setPhase('ringkasan'); setFaqSection(null);
   };
 
   // ── PHASE 2: RINGKASAN ───────────────────────────────────────────────────────
   const handleRingkasanLanjut = () => {
-    setCollectionState(createInitialCollectionState()); setPhase('collecting'); setFaqView('none');
+    setCollectionState(createInitialCollectionState()); setPhase('collecting'); setFaqSection(null);
     addMessages([
       { role: 'user', content: 'Mengerti, lanjut konsultasi' },
       { role: 'assistant', content: getCurrentQuestion(createInitialCollectionState(), userName, userGender) },
@@ -106,7 +104,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setPhase('faq');
     setFaqSection(null);
     const sections = FAQ_CONTENT.map(s => `• ${s.title}`);
-    addMessages([{ role: 'assistant', content: `Baik, apa yang ingin ditanyakan?\n\n${sections.join('\n')}\n\n• Kembali ke konsultasi` }]);
+    addMessages([{ role: 'assistant', content: `Baik, apa yang ingin ditanyakan?\n\n${sections.join('\n')}` }]);
   };
   const handleFaqAction = (value: string) => {
     if (value === '__FAQ_KEMBALI__') {
@@ -118,7 +116,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     if (value === '__FAQ_BACK__') {
       setFaqSection(null);
       const sections = FAQ_CONTENT.map(s => `• ${s.title}`);
-      addMessages([{ role: 'assistant', content: `Baik, apa yang ingin ditanyakan?\n\n${sections.join('\n')}\n\n• Kembali ke konsultasi` }]);
+      addMessages([{ role: 'assistant', content: `Baik, apa yang ingin ditanyakan?\n\n${sections.join('\n')}` }]);
       return;
     }
     // Check if it's a category selection
@@ -126,7 +124,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     if (section) {
       setFaqSection(value);
       const items = section.items.map(i => `• ${i.question}`);
-      addMessages([{ role: 'assistant', content: `**${section.title}**\n\n${items.join('\n')}\n\n• Kembali ke FAQ` }]);
+      addMessages([{ role: 'assistant', content: `**${section.title}**\n\nSilakan pilih pertanyaan di bawah ini:\n\n${items.join('\n')}` }]);
       return;
     }
     // Check if it's a question selection
@@ -134,7 +132,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
       const section = FAQ_CONTENT.find(s => s.id === faqSection);
       const item = section?.items.find(i => i.id === value);
       if (item) {
-        addMessages([{ role: 'assistant', content: `**${item.question}**\n\n${item.answer}\n\n• Kembali ke FAQ` }]);
+        addMessages([{ role: 'assistant', content: `**${item.question}**\n\n${item.answer}` }]);
         return;
       }
     }
@@ -170,7 +168,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
 
   // ── PHASE: API Call Handler ───────────────────────────────────────────────────
   const proceedWithCalculation = async (params: Record<string, unknown>, preferences?: string[]) => {
-    setIsLoading(true); setShowPreferences(false);
+    setIsLoading(true);
     addMessages([{ role: 'assistant', content: loadingMessage(userName, userGender) }]);
     try {
       const res = await fetch('/api/recommend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ collectedParams: params, preferences }) });
@@ -206,18 +204,19 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   // ── Filter 1 Result Handler ────────────────────────────────────────────────────
   const handleFilter1Lanjut = () => {
     setPhase('filter2_pref');
-    // Build economic data from ECONOMIC_DATA constant
-    const ECONOMIC_DATA: Record<string, { biaya: string; harga: string; produktivitas: string; risiko: string; permintaan: string }> = {
-      'Padi':           { biaya: 'Rp 7.2 juta/ha',  harga: 'Rp 10.000/kg',  produktivitas: '5.28 ton/ha',  risiko: 'Sedang (2/3)',  permintaan: 'Sangat Tinggi (5/5)' },
-      'Jagung':         { biaya: 'Rp 6.2 juta/ha',  harga: 'Rp 8.400/kg',   produktivitas: '5.57 ton/ha',  risiko: 'Sedang (2/3)',  permintaan: 'Tinggi (4/5)' },
-      'Kedelai':        { biaya: 'Rp 5.4 juta/ha',  harga: 'Rp 16.500/kg',  produktivitas: '1.62 ton/ha',  risiko: 'Tinggi (3/3)',    permintaan: 'Tinggi (4/5)' },
-      'Cabai Merah':    { biaya: 'Rp 48.5 juta/ha', harga: 'Rp 52.000/kg',  produktivitas: '8.60 ton/ha',  risiko: 'Tinggi (3/3)',    permintaan: 'Tinggi (4/5)' },
-      'Bawang Merah':   { biaya: 'Rp 58.5 juta/ha', harga: 'Rp 37.300/kg',  produktivitas: '10.05 ton/ha', risiko: 'Tinggi (3/3)',    permintaan: 'Sangat Tinggi (5/5)' },
-      'Bawang Putih':   { biaya: 'Rp 91.6 juta/ha', harga: 'Rp 39.100/kg',  produktivitas: '8.50 ton/ha',  risiko: 'Tinggi (3/3)',    permintaan: 'Sangat Tinggi (5/5)' },
-    };
     const surviving = survivingCrops.map((c: { name: string }) => {
-      const econ = ECONOMIC_DATA[c.name] || { biaya: '—', harga: '—', produktivitas: '—', risiko: '—', permintaan: '—' };
-      return { name: c.name, ...econ };
+      const econ = ECONOMIC_DATA[c.name];
+      if (!econ) {
+        return { name: c.name, biaya: '—', harga: '—', produktivitas: '—', risiko: '—', permintaan: '—' };
+      }
+      return { 
+        name: c.name, 
+        biaya: `Rp ${(econ.biaya / 1000000).toFixed(1)} juta/ha`, 
+        harga: `Rp ${econ.harga.toLocaleString('id-ID')}/kg`, 
+        produktivitas: `${econ.produktivitas} ton/ha`, 
+        risiko: econ.risiko === 3 ? 'Tinggi (3/3)' : econ.risiko === 2 ? 'Sedang (2/3)' : 'Rendah (1/3)', 
+        permintaan: econ.permintaan === 5 ? 'Sangat Tinggi (5/5)' : econ.permintaan === 4 ? 'Tinggi (4/5)' : 'Sedang (3/5)' 
+      };
     });
     addMessages([{ role: 'assistant', content: filter2PrefMessage(userName, userGender, surviving) }]);
   };
@@ -233,14 +232,10 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   };
 
   const handlePreferenceToggle = (prefId: string) => {
-    const result = handleTogglePreference(selectedPreferences, prefId);
-    if (result.changed) setSelectedPreferences(result.selectedIds);
-  };
-
-  const handlePreferenceSubmit = () => {
-    if (selectedPreferences.length === 0) return;
-    addMessages([{ role: 'user', content: 'Hitung Ranking' }]);
-    proceedWithCalculation(collectedParams || {}, selectedPreferences);
+    setSelectedPreferences(prev => {
+      const result = handleTogglePreference(prev, prefId);
+      return result.changed ? result.selectedIds : prev;
+    });
   };
 
   // ── PHASE 6: RESULT ──────────────────────────────────────────────────────────
@@ -250,7 +245,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   };
   const handleKembaliKeHasil = () => { setSelectedCropDetail(null); setPhase('done'); };
   const handleUlangi = () => {
-    setCollectionState(createInitialCollectionState()); setCollectedParams(null); setSurvivingCrops([]); setEliminatedCrops([]); setOutOfRangeParams([]); setSelectedPreferences([]); setSelectedCropDetail(null); setDarkHorse([]); setFaqView('none'); setPhase('ringkasan');
+    setCollectionState(createInitialCollectionState()); setCollectedParams(null); setSurvivingCrops([]); setEliminatedCrops([]); setOutOfRangeParams([]); setSelectedPreferences([]); setSelectedCropDetail(null); setDarkHorse([]); setFaqSection(null); setPhase('ringkasan');
     addMessages([{ role: 'assistant', content: ringkasanMessage(userName, userGender) }]);
   };
   const handleSelesai = () => { addMessages([{ role: 'user', content: 'Selesai' }, { role: 'assistant', content: closingMessage(userName, userGender) }]); setPhase('closing'); };
@@ -276,7 +271,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     }
     else if (phase === 'done') { if (value.startsWith('__DETAIL__')) handleLihatDetail(value.replace('__DETAIL__', '')); else if (value === '__ULANGI_KONSULTASI__') handleUlangi(); else if (value === '__SELESAI__') handleSelesai(); }
     else if (phase === 'detail') { if (value === '__DETAIL_KEMBALI__') handleKembaliKeHasil(); else if (value === '__DETAIL_ULANGI__') handleUlangi(); else if (value === '__DETAIL_SELESAI__') handleSelesai(); }
-    else if (phase === 'closing') { if (value === '__CLOSING_ULANGI__') handleUlangi(); else if (value === '__CLOSING_BERANDA__') { setPhase('welcome'); setMessages([{ id: nextMsgId(), role: 'assistant', content: welcomeMessage() }]); setUserName(''); setUserGender('laki'); setCollectedParams(null); setSurvivingCrops([]); setEliminatedCrops([]); setOutOfRangeParams([]); setSelectedCropDetail(null); setFaqView('none'); setFormName(''); setFormGender(''); }
+    else if (phase === 'closing') { if (value === '__CLOSING_ULANGI__') handleUlangi(); else if (value === '__CLOSING_BERANDA__') { setPhase('welcome'); setMessages([{ id: nextMsgId(), role: 'assistant', content: welcomeMessage() }]); setUserName(''); setUserGender('laki'); setCollectedParams(null); setSurvivingCrops([]); setEliminatedCrops([]); setOutOfRangeParams([]); setSelectedCropDetail(null); setFaqSection(null); setFormName(''); setFormGender(''); }
     }
   };
 
