@@ -224,29 +224,43 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   };
   const handleFilter1Cukup = () => {
     setPhase('done');
-    const cropList = survivingCrops.map((c: { name: string }, i: number) => `${i + 1}. **${c.name}**`).join('\n');
+    const s = sap(userGender);
+    const emojiMap: Record<string, string> = { 'Padi': '🌾', 'Jagung': '🌽', 'Kedelai': '🫘', 'Cabai Merah': '🌶️', 'Bawang Merah': '🧅', 'Bawang Putih': '🧄' };
+    const cropList = survivingCrops.map((c: { name: string; score: string }, i: number) => {
+      const emoji = emojiMap[c.name] || '🌱';
+      return `${emoji} **${c.name}** — ${c.score} (Skor: ${parseInt(c.score, 10) || 0}/100)`;
+    }).join('\n');
     addMessages([{ role: 'assistant', content: [
-      `Baik, ${userName}! Berdasarkan analisis kesesuaian lingkungan, berikut tanaman yang cocok:`,
+      `Baik, ${userName}! 🌿`,
+      '',
+      `Berdasarkan kondisi lahan ${s}, berikut tanaman yang **paling cocok**:`,
       '',
       cropList,
       '',
-      `Tanaman-tanaman ini cocok dengan kondisi lahan ${sap(userGender)}. Kalau ${sap(userGender)} ingin mengetahui ranking keuntungannya, bisa lanjut ke perhitungan Filter 2. Atau bisa juga coba dengan data lain.`,
+      `${s} bisa lanjut ke **Filter 2** untuk melihat ranking keuntungan, atau **Lihat detail** untuk analisis masing-masing tanaman. Kalau mau coba data lain, pilih **Ulangi**.`,
     ].join('\n') }]);
   };
   // ── Filter 2 Summary Handlers ─────────────────────────────────────────────────
   const handleFilter2SummaryLanjut = () => {
     setPhase('filter2_pref');
-    addMessages([{ role: 'user', content: 'Lanjut hitung ranking' }, { role: 'assistant', content: `Baik, ${userName}! Sekarang saya perlu tahu prioritas ${sap(userGender)} untuk menentukan ranking.\n\nMana yang lebih penting? ${sap(userGender)} bisa pilih sampai 3.` }]);
+    addMessages([{ role: 'assistant', content: `Baik, ${userName}! Sekarang saya perlu tahu prioritas ${sap(userGender)} untuk menentukan ranking.\n\nMana yang lebih penting? ${sap(userGender)} bisa pilih sampai 3.` }]);
   };
   const handleFilter2SummaryCukup = () => {
     setPhase('done');
-    const cropList = survivingCrops.map((c: { name: string }, i: number) => `${i + 1}. **${c.name}**`).join('\n');
+    const s = sap(userGender);
+    const emojiMap: Record<string, string> = { 'Padi': '🌾', 'Jagung': '🌽', 'Kedelai': '🫘', 'Cabai Merah': '🌶️', 'Bawang Merah': '🧅', 'Bawang Putih': '🧄' };
+    const cropList = survivingCrops.map((c: { name: string; score: string }, i: number) => {
+      const emoji = emojiMap[c.name] || '🌱';
+      return `${emoji} **${c.name}** — ${c.score} (Skor: ${parseInt(c.score, 10) || 0}/100)`;
+    }).join('\n');
     addMessages([{ role: 'assistant', content: [
-      `Baik, ${userName}! Tanaman yang cocok dengan lahan ${sap(userGender)} berdasarkan analisis lingkungan:`,
+      `Baik, ${userName}! 🌿`,
+      '',
+      `Tanaman yang cocok dengan lahan ${s} berdasarkan analisis lingkungan:`,
       '',
       cropList,
       '',
-      `Itu dia rekomendasi dari sisi kesesuaian lahan. Kalau mau, ${sap(userGender)} bisa coba dengan data lain atau lihat detail masing-masing tanaman.`,
+      `Itu dia rekomendasi dari sisi kesesuaian lahan. ${s} bisa **Lihat detail** untuk analisis masing-masing, atau **Ulangi** untuk coba data lain.`,
     ].join('\n') }]);
   };
   const handleFilter2SummaryUlangi = () => {
@@ -272,8 +286,21 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     if (crop) { setSelectedCropDetail(crop); setPhase('detail'); addMessages([{ role: 'user', content: `Lihat detail ${cropName}` }, { role: 'assistant', content: detailMessage(crop.name, crop.score, crop.explanation, crop.breakdown) }]); }
   };
   const handleKembaliKeHasil = () => {
+    const lastCrop = selectedCropDetail;
     setSelectedCropDetail(null); setPhase('done');
-    addMessages([{ role: 'assistant', content: `Baik, ${userName}! Kembali ke hasil ranking.\n\nPilih **Lihat detail** untuk melihat analisis tanaman, atau **Ulangi** untuk konsultasi baru.` }]);
+    // Re-send the last result so user can see it again
+    if (lastCrop) {
+      const fullCrop = survivingCrops.find((c: { name: string }) => c.name === lastCrop.name);
+      addMessages([{ role: 'assistant', content: detailMessage(lastCrop.name, lastCrop.score, fullCrop?.explanation, fullCrop?.breakdown) }]);
+    } else if (survivingCrops.length > 0 && eliminatedCrops.length > 0) {
+      const surviving = survivingCrops.map((c: { name: string; score: string; explanation?: string }) => ({
+        name: c.name, score: c.score || 'Cocok', matchDetails: c.explanation || 'Sesuai dengan kondisi lahan Anda.',
+      }));
+      const eliminated = eliminatedCrops.map((e: { name: string; reasons: string[] }) => ({ name: e.name, reasons: e.reasons }));
+      addMessages([{ role: 'assistant', content: filter1ResultMessage(userName, userGender, surviving, eliminated) }]);
+    } else {
+      addMessages([{ role: 'assistant', content: `Baik, ${userName}! Kembali ke hasil. Pilih **Lihat detail** untuk melihat analisis tanaman, atau **Ulangi** untuk konsultasi baru.` }]);
+    }
   };
   const handleUlangi = () => {
     setCollectionState(createInitialCollectionState()); setCollectedParams(null); setSurvivingCrops([]); setEliminatedCrops([]); setOutOfRangeParams([]); setSelectedPreferences([]); setSelectedCropDetail(null); setDarkHorse([]); setFaqSection(null); setPhase('ringkasan');
