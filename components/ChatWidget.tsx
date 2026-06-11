@@ -224,7 +224,14 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   };
   const handleFilter1Cukup = () => {
     setPhase('done');
-    addMessages([{ role: 'assistant', content: `Baik, ${userName}! Berdasarkan analisis kesesuaian lingkungan, berikut rekomendasi saya:\n\n${survivingCrops.map((c: { name: string }, i: number) => `${i + 1}. **${c.name}**`).join('\n')}\n\nSemoga rekomendasi ini membantu, ${sap(userGender)}!` }]);
+    const cropList = survivingCrops.map((c: { name: string }, i: number) => `${i + 1}. **${c.name}**`).join('\n');
+    addMessages([{ role: 'assistant', content: [
+      `Baik, ${userName}! Berdasarkan analisis kesesuaian lingkungan, berikut tanaman yang cocok:`,
+      '',
+      cropList,
+      '',
+      `Tanaman-tanaman ini cocok dengan kondisi lahan ${sap(userGender)}. Kalau ${sap(userGender)} ingin mengetahui ranking keuntungannya, bisa lanjut ke perhitungan Filter 2. Atau bisa juga coba dengan data lain.`,
+    ].join('\n') }]);
   };
   // ── Filter 2 Summary Handlers ─────────────────────────────────────────────────
   const handleFilter2SummaryLanjut = () => {
@@ -233,7 +240,14 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   };
   const handleFilter2SummaryCukup = () => {
     setPhase('done');
-    addMessages([{ role: 'assistant', content: `Baik, ${userName}! Berdasarkan analisis kesesuaian lingkungan, berikut rekomendasi saya:\n\n${survivingCrops.map((c: { name: string }, i: number) => `${i + 1}. **${c.name}**`).join('\n')}\n\nSemoga rekomendasi ini membantu, ${sap(userGender)}!` }]);
+    const cropList = survivingCrops.map((c: { name: string }, i: number) => `${i + 1}. **${c.name}**`).join('\n');
+    addMessages([{ role: 'assistant', content: [
+      `Baik, ${userName}! Tanaman yang cocok dengan lahan ${sap(userGender)} berdasarkan analisis lingkungan:`,
+      '',
+      cropList,
+      '',
+      `Itu dia rekomendasi dari sisi kesesuaian lahan. Kalau mau, ${sap(userGender)} bisa coba dengan data lain atau lihat detail masing-masing tanaman.`,
+    ].join('\n') }]);
   };
   const handleFilter2SummaryUlangi = () => {
     handleUlangi();
