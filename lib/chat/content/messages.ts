@@ -249,11 +249,6 @@ export function filter2PrefMessage(
     lines.push('');
   });
 
-  lines.push('---');
-  lines.push('');
-  lines.push(`Untuk menentukan ranking, saya perlu tahu **prioritas** ${s}.`);
-  lines.push('');
-  lines.push(`Mana yang lebih penting? ${s} bisa pilih **sampai 3**.`);
   return lines.join('\n');
 }
 
