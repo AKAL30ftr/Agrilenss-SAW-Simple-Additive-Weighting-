@@ -44,6 +44,8 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const msgIdCounter = useRef(0);
   const nextMsgId = () => { msgIdCounter.current += 1; return `msg-${msgIdCounter.current}`; };
+  // Store Filter 1 result separately so "Kembali ke hasil" can re-send correct result
+  const lastFilter1Result = useRef<{ surviving: Array<{ name: string; score: string; matchDetails: string }>; eliminated: Array<{ name: string; reasons: string[] }> } | null>(null);
 
   const saveToStorage = useCallback((name: string, gender: 'laki' | 'perempuan', lastParams?: Record<string, unknown>) => {
     if (typeof window === 'undefined') return;
@@ -197,6 +199,7 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
             name: c.name, score: c.score || 'Cocok', matchDetails: c.explanation || 'Sesuai dengan kondisi lahan Anda.',
           }));
           const eliminated = data.eliminated.map((e: { name: string; reasons: string[] }) => ({ name: e.name, reasons: e.reasons }));
+          lastFilter1Result.current = { surviving: survivingData, eliminated };
           addMessages([{ role: 'assistant', content: filter1ResultMessage(userName, userGender, survivingData, eliminated) }]);
         }
       }
@@ -290,8 +293,13 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     setSelectedCropDetail(null); setPhase('done');
     // Re-send the last result so user can see it again
     if (lastCrop) {
+      // Coming back from a detail view — re-send that crop's detail
       const fullCrop = survivingCrops.find((c: { name: string }) => c.name === lastCrop.name);
       addMessages([{ role: 'assistant', content: detailMessage(lastCrop.name, lastCrop.score, fullCrop?.explanation, fullCrop?.breakdown) }]);
+    } else if (lastFilter1Result.current) {
+      // Coming back from Filter 2 or Cukup — re-send the saved Filter 1 result
+      const { surviving, eliminated } = lastFilter1Result.current;
+      addMessages([{ role: 'assistant', content: filter1ResultMessage(userName, userGender, surviving, eliminated) }]);
     } else if (survivingCrops.length > 0 && eliminatedCrops.length > 0) {
       const surviving = survivingCrops.map((c: { name: string; score: string; explanation?: string }) => ({
         name: c.name, score: c.score || 'Cocok', matchDetails: c.explanation || 'Sesuai dengan kondisi lahan Anda.',

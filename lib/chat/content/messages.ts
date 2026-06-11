@@ -328,7 +328,7 @@ export function filter2ResultMessage(
     lines.push('Perhitungan disesuaikan berdasarkan pilihan Bapak/Ibu.');
     lines.push('');
   }
-  lines.push('Mau lihat detail salah satu tanaman, atau ada yang ingin ditanyakan?');
+  lines.push('Mau lihat detail salah satu tanaman?');
   return lines.join('\n');
 }
 
