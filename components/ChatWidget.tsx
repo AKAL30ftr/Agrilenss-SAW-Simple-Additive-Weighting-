@@ -257,7 +257,10 @@ export default function ChatWidget({ fullPage = false }: { fullPage?: boolean })
     const crop = survivingCrops.find((c) => c.name === cropName);
     if (crop) { setSelectedCropDetail(crop); setPhase('detail'); addMessages([{ role: 'user', content: `Lihat detail ${cropName}` }, { role: 'assistant', content: detailMessage(crop.name, crop.score, crop.explanation, crop.breakdown) }]); }
   };
-  const handleKembaliKeHasil = () => { setSelectedCropDetail(null); setPhase('done'); };
+  const handleKembaliKeHasil = () => {
+    setSelectedCropDetail(null); setPhase('done');
+    addMessages([{ role: 'assistant', content: `Baik, ${userName}! Kembali ke hasil ranking.\n\nPilih **Lihat detail** untuk melihat analisis tanaman, atau **Ulangi** untuk konsultasi baru.` }]);
+  };
   const handleUlangi = () => {
     setCollectionState(createInitialCollectionState()); setCollectedParams(null); setSurvivingCrops([]); setEliminatedCrops([]); setOutOfRangeParams([]); setSelectedPreferences([]); setSelectedCropDetail(null); setDarkHorse([]); setFaqSection(null); setPhase('ringkasan');
     addMessages([{ role: 'assistant', content: ringkasanMessage(userName, userGender) }]);
